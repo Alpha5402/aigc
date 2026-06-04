@@ -119,7 +119,6 @@
                     <text class="income-calc__desc">按当前报价、可成交数量、距离和损耗估算</text>
                   </view>
                   <view class="income-calc__side">
-                    <text class="income-calc__amount">{{ formatCurrency(getNetProfit(buyer)) }}</text>
                     <button class="income-calc__toggle" @click.stop="toggleCalcDetail(buyer)">
                       {{ isCalcExpanded(buyer) ? '收起详情' : '展开详情' }}
                     </button>
@@ -887,13 +886,6 @@ const goMyProducts = () => {
   flex-direction: column;
   align-items: flex-end;
   gap: 14rpx;
-}
-
-.income-calc__amount {
-  color: var(--acm-brand-primary-dark);
-  font-size: 56rpx;
-  font-weight: 900;
-  line-height: 1;
 }
 
 .income-calc__toggle {
