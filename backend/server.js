@@ -2584,7 +2584,7 @@ app.get('/api/ai/history', optionalAuth, (req, res) => {
   )
 })
 
-app.post('/api/ads/generate', requireAuth, (req, res) => {
+const handleGenerateAdMaterials = (req, res) => {
   const payload = req.body || {}
   const legacyTemplate = payload.templateId
     ? adTemplates.find((item) => item.id === Number(payload.templateId)) || adTemplates[0]
@@ -2618,7 +2618,10 @@ app.post('/api/ads/generate', requireAuth, (req, res) => {
   )
 
   res.json(ok(materialPackage))
-})
+}
+
+app.post('/api/ads/generate', requireAuth, handleGenerateAdMaterials)
+app.post('/api/ads/marketing-materials', requireAuth, handleGenerateAdMaterials)
 
 app.post('/api/ai/diagnose', requireAuth, async (req, res) => {
   const payload = req.body || {}

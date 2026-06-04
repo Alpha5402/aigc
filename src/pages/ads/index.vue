@@ -24,9 +24,11 @@
             </view>
           </view>
 
-          <view class="card-head">
-            <text class="card-title">待推广产品</text>
-            <button class="text-btn" @click="goAddCrop">去完善</button>
+          <view class="card-head product-panel__head">
+            <view class="product-panel__head-main">
+              <text class="card-title">待推广产品</text>
+            </view>
+            <button class="text-btn product-panel__complete" @click="goAddCrop">去完善</button>
           </view>
 
           <EmptyState
@@ -38,19 +40,6 @@
           />
 
           <template v-else>
-            <scroll-view v-if="products.length > 1" class="product-tabs" scroll-x>
-              <view class="tab-row">
-                <view
-                  v-for="product in products"
-                  :key="product.id"
-                  :class="['tab-item', selectedProduct.id === product.id ? 'tab-item-active' : '']"
-                  @click="selectProduct(product.id)"
-                >
-                  <text>{{ product.name }}</text>
-                </view>
-              </view>
-            </scroll-view>
-
             <view class="product-card">
               <view class="product-title-row">
                 <view class="product-name">
@@ -65,6 +54,9 @@
                 <text>所在地：{{ selectedProduct.location || '待完善' }}</text>
                 <text>参考行情：{{ marketPriceText }}</text>
               </view>
+            </view>
+            <view v-if="products.length > 1" class="product-panel__more" @click="openProductModal">
+              <text>查看更多</text>
             </view>
           </template>
         </view>
@@ -206,6 +198,42 @@
         <view class="bottom-text">基于作物档案生成 · 发布前请按真实情况核对</view>
       </view>
     </scroll-view>
+
+    <view v-if="showProductModal" class="product-modal">
+      <view class="product-modal__mask" @click="closeProductModal"></view>
+      <view class="product-modal__panel">
+        <view class="product-modal__head">
+          <view>
+            <text class="product-modal__title">全部待推广产品</text>
+            <text class="product-modal__subtitle">选择一个产品作为当前素材包生成对象</text>
+          </view>
+          <button class="product-modal__close" @click="closeProductModal">关闭</button>
+        </view>
+
+        <scroll-view class="product-modal__list" scroll-y :show-scrollbar="false">
+          <view
+            v-for="product in products"
+            :key="product.id"
+            :class="['product-modal__item', isSelectedPromotionProduct(product) ? 'product-modal__item--active' : '']"
+            @click="selectPromotionProduct(product)"
+          >
+            <view class="product-modal__item-main">
+              <text class="product-modal__name">{{ product.name || '未填写' }}</text>
+              <text class="product-modal__meta">
+                {{ product.location || '所在地待完善' }} · {{ formatYield(product) }} · {{ product.expectedMarketTime || '上市时间待完善' }}
+              </text>
+            </view>
+            <SvgIcon
+              v-if="isSelectedPromotionProduct(product)"
+              name="check"
+              :size="18"
+              color="var(--acm-primary)"
+            />
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+
     <BottomNav />
     <AssistantFloat current-page="/pages/ads/index" />
   </view>
@@ -242,6 +270,7 @@ const selectedSellingPoints = ref<string[]>(['产地直发', '可提供实拍图
 const targetBuyerName = ref('')
 const materialPackage = ref<MarketingMaterialPackage | null>(null)
 const isGenerating = ref(false)
+const showProductModal = ref(false)
 
 const goalOptions: Array<{ value: MarketingGoal; label: string; desc: string }> = [
   { value: 'buyer', label: '找收购商', desc: '询价、起收量、结算方式' },
@@ -352,6 +381,24 @@ const selectProduct = (id: number) => {
   materialPackage.value = null
 }
 
+const openProductModal = () => {
+  showProductModal.value = true
+}
+
+const closeProductModal = () => {
+  showProductModal.value = false
+}
+
+const isSelectedPromotionProduct = (product: MarketingProduct) => {
+  return selectedProduct.value?.id === product.id
+}
+
+const selectPromotionProduct = (product: MarketingProduct) => {
+  selectedProductId.value = product.id
+  materialPackage.value = null
+  showProductModal.value = false
+}
+
 const toggleSellingPoint = (point: string) => {
   if (selectedSellingPoints.value.includes(point)) {
     selectedSellingPoints.value = selectedSellingPoints.value.filter((item) => item !== point)
@@ -372,7 +419,18 @@ const handleGenerate = async () => {
   try {
     const market = matchedMarket.value
     const result = await generateMarketingMaterials({
+      productId: product.id,
       productName: product.name,
+      productInfo: {
+        name: product.name,
+        area: product.area,
+        expectedYield: product.expectedYield,
+        yieldUnit: product.yieldUnit || '斤',
+        expectedMarketTime: product.expectedMarketTime || '',
+        location: product.location || '',
+        marketPrice: market?.currentPrice,
+        marketUnit: market?.unit,
+      },
       expectedYield: product.expectedYield,
       yieldUnit: product.yieldUnit || '斤',
       expectedMarketTime: product.expectedMarketTime || '',
@@ -380,8 +438,12 @@ const handleGenerate = async () => {
       marketPrice: market?.currentPrice,
       marketUnit: market?.unit,
       goal: selectedGoal.value,
+      channel: selectedGoal.value,
+      tone: '真实可信、自然亲切',
       sellingPoints: selectedSellingPoints.value,
       targetBuyerName: targetBuyerName.value,
+      targetAudience: targetBuyerName.value || goalOptions.find((item) => item.value === selectedGoal.value)?.label || '',
+      extraRequirements: '内容必须基于真实作物档案和已选择卖点，避免未证明的认证类描述。',
     })
     materialPackage.value = result
     uni.showToast({ title: '素材包已生成', icon: 'success' })
@@ -578,6 +640,40 @@ const showNotice = () => {
   font-size: 24rpx;
 }
 
+.product-panel__head {
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.product-panel__head-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.product-panel__complete {
+  flex: 0 0 auto;
+  margin-left: auto;
+  margin-right: 4rpx;
+  min-height: 48rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid rgba(54, 125, 73, 0.18);
+  border-radius: 999rpx;
+  background: rgba(255, 254, 249, 0.94);
+  color: var(--acm-brand-primary);
+  font-size: 22rpx;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.product-panel__complete::after {
+  border: 0;
+}
+
 .product-tabs {
   white-space: nowrap;
   margin-bottom: 20rpx;
@@ -635,6 +731,135 @@ const showNotice = () => {
 
 .product-grid text {
   width: calc((100% - 20rpx) / 2);
+}
+
+.product-panel__more {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12rpx;
+  padding-right: 4rpx;
+}
+
+.product-panel__more text {
+  color: var(--acm-brand-primary);
+  font-size: 24rpx;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 4rpx;
+}
+
+.product-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  pointer-events: auto;
+}
+
+.product-modal__mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(33, 53, 40, 0.34);
+}
+
+.product-modal__panel {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(24rpx + constant(safe-area-inset-bottom));
+  bottom: calc(24rpx + env(safe-area-inset-bottom));
+  max-height: 68vh;
+  padding: 28rpx;
+  border: 1rpx solid rgba(207, 222, 202, 0.88);
+  border-radius: 34rpx;
+  background: linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(248, 251, 245, 0.98));
+  box-shadow: 0 24rpx 60rpx rgba(37, 84, 58, 0.22);
+  box-sizing: border-box;
+}
+
+.product-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 20rpx;
+}
+
+.product-modal__title,
+.product-modal__subtitle {
+  display: block;
+}
+
+.product-modal__title {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: var(--acm-text-primary);
+}
+
+.product-modal__subtitle {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: var(--acm-text-muted);
+}
+
+.product-modal__close {
+  flex: 0 0 auto;
+  min-height: 48rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid rgba(54, 125, 73, 0.18);
+  border-radius: 999rpx;
+  background: var(--acm-bg-card);
+  color: var(--acm-primary);
+  font-size: 22rpx;
+  line-height: 1;
+}
+
+.product-modal__close::after {
+  border: 0;
+}
+
+.product-modal__list {
+  max-height: 48vh;
+}
+
+.product-modal__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 22rpx;
+  margin-bottom: 14rpx;
+  border: 1rpx solid rgba(200, 222, 197, 0.72);
+  border-radius: 24rpx;
+  background: rgba(255, 254, 249, 0.76);
+  box-sizing: border-box;
+}
+
+.product-modal__item--active {
+  background: var(--acm-brand-primary-soft);
+  border-color: rgba(54, 125, 73, 0.38);
+}
+
+.product-modal__item-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.product-modal__name,
+.product-modal__meta {
+  display: block;
+}
+
+.product-modal__name {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: var(--acm-text-primary);
+}
+
+.product-modal__meta {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  line-height: 1.35;
+  color: var(--acm-text-muted);
 }
 
 .goal-grid {

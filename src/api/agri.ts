@@ -265,7 +265,9 @@ export interface MarketingMaterialPackage {
 }
 
 export interface GenerateMarketingPayload {
+  productId?: number | string
   productName: string
+  productInfo?: Record<string, unknown>
   expectedYield?: number | string
   yieldUnit?: string
   expectedMarketTime?: string
@@ -273,8 +275,12 @@ export interface GenerateMarketingPayload {
   marketPrice?: number
   marketUnit?: string
   goal: MarketingGoal
+  channel?: MarketingGoal | string
+  tone?: string
   sellingPoints: string[]
+  targetAudience?: string
   targetBuyerName?: string
+  extraRequirements?: string
 }
 
 export interface AddCropPayload {
@@ -1338,6 +1344,46 @@ export const removeMyFieldCrop = async (id: number, name: string) => {
 }
 
 
+const toStringList = (value: unknown) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean)
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(/\n|,|，/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+  return []
+}
+
+const pickMarketingField = (source: Record<string, any>, keys: string[]) => {
+  for (const key of keys) {
+    const value = source[key]
+    if (Array.isArray(value) ? value.length : value) return value
+  }
+  return ''
+}
+
+const normalizeMarketingMaterialPackage = (response: unknown): MarketingMaterialPackage => {
+  const root = (response && typeof response === 'object' ? response : {}) as Record<string, any>
+  const data = (root.data && typeof root.data === 'object' ? root.data : root) as Record<string, any>
+  const materials = (data.materials && typeof data.materials === 'object' ? data.materials : {}) as Record<string, any>
+  const source = { ...data, ...materials }
+
+  return {
+    productTitle: String(pickMarketingField(source, ['productTitle', 'title', 'headline']) || ''),
+    wechatCopy: String(pickMarketingField(source, ['wechatCopy', 'copywriting', 'copy', 'posterText']) || ''),
+    shortVideoScript: String(pickMarketingField(source, ['shortVideoScript', 'videoScript', 'script']) || ''),
+    inquiryScript: String(pickMarketingField(source, ['inquiryScript', 'buyerInquiryScript', 'inquiry']) || ''),
+    imageSuggestions: toStringList(pickMarketingField(source, ['imageSuggestions', 'imagePrompts', 'posterSuggestions'])),
+    tags: toStringList(pickMarketingField(source, ['tags', 'hashtags'])),
+    completenessScore: Number(pickMarketingField(source, ['completenessScore', 'score']) || 0),
+    complianceTips: toStringList(pickMarketingField(source, ['complianceTips', 'tips', 'warnings'])),
+  }
+}
+
 export const generateMarketingMaterials = async (payload: GenerateMarketingPayload) => {
-  return http.post<MarketingMaterialPackage, GenerateMarketingPayload>('/ads/marketing-materials', payload)
+  const response = await http.post<unknown, GenerateMarketingPayload>('/ads/marketing-materials', payload)
+  return normalizeMarketingMaterialPackage(response)
 }
