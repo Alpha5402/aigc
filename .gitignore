@@ -22,3 +22,5 @@ backend/data/*.sqlite-*
 *.njsproj
 *.sln
 *.sw?
+unpackage
+model-service/.venv

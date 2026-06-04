@@ -3,7 +3,6 @@ import type { AssistantAction } from '../types/assistant'
 const ASSISTANT_PENDING_ACTION_KEY = 'assistant_pending_action'
 
 const tabPages = new Set([
-  '/pages/index/index',
   '/pages/my-field/index',
   '/pages/market/index',
   '/pages/buyer/index',

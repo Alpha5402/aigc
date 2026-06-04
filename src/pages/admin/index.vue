@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="admin-app">
     <view class="app-sidebar">
       <view class="sidebar-brand">
@@ -1277,7 +1277,7 @@ const handleLogout = async () => {
     success: async (res) => {
       if (res.confirm) {
         await authStore.logout()
-        uni.reLaunch({ url: '/pages/index/index' })
+        uni.reLaunch({ url: '/pages/login/index' })
       }
     },
   })

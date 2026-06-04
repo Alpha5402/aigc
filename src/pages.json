@@ -1,9 +1,10 @@
 {
 	"pages": [
 		{
-			"path": "pages/index/index",
+			"path": "pages/my-field/index",
 			"style": {
-				"navigationBarTitleText": "首页"
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "我的地"
 			}
 		},
 		{
@@ -25,13 +26,6 @@
 			"style": {
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "通知中心"
-			}
-		},
-		{
-			"path": "pages/my-field/index",
-			"style": {
-				"navigationStyle": "custom",
-				"navigationBarTitleText": "我的地"
 			}
 		},
 		{

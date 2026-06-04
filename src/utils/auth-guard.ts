@@ -1,11 +1,10 @@
 const LOGIN_PAGE = '/pages/login/index'
-const DEFAULT_PAGE = '/pages/index/index'
+const DEFAULT_PAGE = '/pages/my-field/index'
 const REDIRECT_KEY = 'acm_auth_redirect_after_login'
 const PUBLIC_PAGES = new Set([
   LOGIN_PAGE, 
   '/pages/register/index', 
   '/pages/market/index', 
-  '/pages/index/index',
   '/pages/buyer/index',
   '/pages/ai-consult/index',
   '/pages/my-field/index',
