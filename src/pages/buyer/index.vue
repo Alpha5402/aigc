@@ -120,6 +120,31 @@
                 <text class="profit-summary-value">{{ formatCurrency(getNetProfit(buyer)) }}</text>
               </view>
 
+              <view class="income-calc">
+                <view class="income-calc__head">
+                  <text class="income-calc__title">交易测算过程</text>
+                  <text class="income-calc__tag">预估</text>
+                </view>
+                <view class="income-calc__grid">
+                  <view class="income-calc__item">
+                    <text class="income-calc__label">预计收入</text>
+                    <text class="income-calc__value">{{ formatCurrency(getEstimatedIncome(buyer)) }}</text>
+                  </view>
+                  <view class="income-calc__item">
+                    <text class="income-calc__label">运输成本</text>
+                    <text class="income-calc__value income-calc__value--cost">-{{ formatCurrency(buyer.transport) }}</text>
+                  </view>
+                  <view class="income-calc__item">
+                    <text class="income-calc__label">预计损耗</text>
+                    <text class="income-calc__value income-calc__value--cost">-{{ formatCurrency(buyer.loss) }}</text>
+                  </view>
+                  <view class="income-calc__item income-calc__item--strong">
+                    <text class="income-calc__label">预计净收入</text>
+                    <text class="income-calc__value">{{ formatCurrency(getNetProfit(buyer)) }}</text>
+                  </view>
+                </view>
+              </view>
+
               <view v-if="buyer.matchReason" class="reason-box">
                 <SvgIcon name="sparkles" :size="14" color="var(--acm-primary)" />
                 <text>{{ buyer.matchReason }}</text>
@@ -181,6 +206,7 @@ const myProducts = ref<MyProductItem[]>([])
 const searchQuery = ref('')
 const isRefreshing = ref(false)
 
+const getEstimatedIncome = (buyer: BuyerItem) => Number(buyer.estimatedIncome || buyer.profit || 0)
 const getNetProfit = (buyer: BuyerItem) => Number(buyer.netProfit || 0)
 
 const formatNumber = (value: number) => {
@@ -837,6 +863,79 @@ const goMyProducts = () => {
   font-size: 40rpx;
   font-weight: 900;
   line-height: 1;
+}
+
+.income-calc {
+  margin-bottom: 18rpx;
+  padding: 20rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 254, 249, 0.86);
+  border: 1rpx solid rgba(214, 221, 214, 0.72);
+}
+
+.income-calc__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.income-calc__title {
+  color: var(--acm-text-primary);
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.income-calc__tag {
+  flex: 0 0 auto;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(54, 125, 73, 0.1);
+  color: var(--acm-brand-primary);
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.income-calc__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.income-calc__item {
+  min-width: 0;
+  padding: 16rpx;
+  border-radius: 18rpx;
+  background: var(--acm-white);
+  box-shadow: 0 6rpx 16rpx rgba(31, 42, 35, 0.04);
+  box-sizing: border-box;
+}
+
+.income-calc__label,
+.income-calc__value {
+  display: block;
+}
+
+.income-calc__label {
+  margin-bottom: 8rpx;
+  color: var(--acm-text-secondary);
+  font-size: 22rpx;
+}
+
+.income-calc__value {
+  color: var(--acm-text-primary);
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.income-calc__value--cost {
+  color: var(--acm-danger-text);
+}
+
+.income-calc__item--strong .income-calc__value {
+  color: var(--acm-brand-primary);
 }
 
 .reason-box {
