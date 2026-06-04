@@ -7,9 +7,6 @@
           <text class="header-subtitle">根据作物、地区和需求，推荐合适收购方</text>
         </view>
         <view class="header-actions">
-          <button class="icon-btn" @click="goInterestList">
-            <SvgIcon name="heart" :size="20" color="var(--acm-danger)" />
-          </button>
           <button class="user-notice-bell" @click="showNotice">
             <SvgIcon name="bell" :size="20" color="var(--acm-text-secondary)" />
           </button>
@@ -17,41 +14,6 @@
       </view>
 
       <view class="content">
-        <view class="card">
-          <view class="card-head">
-            <text class="card-title">本次待售产品</text>
-            <button class="text-btn" @click="goAddCrop">去完善</button>
-          </view>
-
-          <EmptyState
-            v-if="myProducts.length === 0"
-            title="暂无待售产品"
-            description="请先在我的地添加待售作物和预期产出，系统将据此计算销路匹配结果。"
-            action-text="去添加作物"
-            @action="goAddCrop"
-          />
-
-          <view v-else class="product-list">
-            <view v-for="(product, index) in myProducts" :key="index" class="product-item">
-              <view class="product-title-row">
-                <view class="product-name">
-                  <SvgIcon name="package" :size="15" color="var(--acm-primary)" />
-                  <text>{{ product.name || '未填写' }}</text>
-                </view>
-                <text v-if="product.marketPrice" class="product-market">
-                  参考 {{ product.marketPrice }}元/{{ product.marketUnit || product.unit || '斤' }}
-                </text>
-              </view>
-              <view class="product-meta-grid">
-                <text>预期产出：{{ formatQuantity(product.quantity, product.unit) }}</text>
-                <text>预计上市：{{ product.expectedMarketTime || '待完善' }}</text>
-                <text>所在地：{{ product.location || '待完善' }}</text>
-                <text v-if="product.area">种植面积：{{ product.area }}</text>
-              </view>
-            </view>
-          </view>
-        </view>
-
         <view class="card card-search">
           <view class="search-box">
             <SvgIcon name="search" :size="16" color="var(--acm-text-muted)" class="search-icon" />
@@ -62,45 +24,28 @@
               @input="onSearchInput"
             />
           </view>
-        </view>
 
-        <view class="card recommendation-card">
-          <view class="recommendation-head">
-            <view>
-              <text class="card-title">智能销售建议</text>
-              <text class="recommendation-provider">{{ recommendationProviderText }}</text>
-            </view>
-            <button class="text-btn" @click="refreshRecommendations">{{ isRefreshing ? '重算中...' : '重新匹配' }}</button>
-          </view>
-          <text class="recommendation-summary">{{ recommendation.summary }}</text>
-        </view>
-
-        <view v-if="topRevenueBuyers.length" class="card comparison-card">
-          <view class="card-head">
-            <text class="card-title">收益对比</text>
-            <text class="card-note">按预计净收益排序</text>
-          </view>
-          <view class="comparison-list">
-            <view v-for="buyer in topRevenueBuyers" :key="buyer.id" class="comparison-item">
-              <view class="comparison-top">
-                <text class="comparison-name">{{ buyer.name }}</text>
-                <text class="comparison-net">{{ formatCurrency(getNetProfit(buyer)) }}</text>
-              </view>
-              <text class="comparison-formula">
-                预估 {{ formatCurrency(getEstimatedIncome(buyer)) }} - 运费 {{ formatCurrency(buyer.transport) }} - 损耗 {{ formatCurrency(buyer.loss) }} = 净收益 {{ formatCurrency(getNetProfit(buyer)) }}
-              </text>
-            </view>
+          <view class="buyer-quick-actions">
+            <button class="buyer-quick-action" @click="goMyProducts">
+              <SvgIcon name="package" :size="22" color="var(--acm-brand-primary)" />
+              <text>代售产品</text>
+            </button>
+            <button class="buyer-quick-action" @click="goInterestList">
+              <SvgIcon name="heart" :size="22" color="var(--acm-brand-primary)" />
+              <text>感兴趣</text>
+            </button>
           </view>
         </view>
 
-        <view class="section-head">
-          <view class="section-left">
+        <view class="match-result__head">
+          <view>
             <view class="section-title-wrap">
               <SvgIcon name="award" :size="18" color="var(--acm-warning)" />
-              <text class="section-title">销路匹配结果</text>
+              <text class="match-result__title">销路匹配结果</text>
             </view>
+            <text class="match-result__desc">根据价格、距离和损耗综合推荐</text>
           </view>
-          <text class="section-note">按预计净收益排序</text>
+          <button class="rematch-btn" @click="handleRematch">{{ isRefreshing ? '匹配中' : '重新匹配' }}</button>
         </view>
 
         <view v-if="filteredBuyers.length === 0" class="list-wrap">
@@ -116,7 +61,7 @@
           <view
             v-for="buyer in filteredBuyers"
             :key="buyer.id"
-            :class="['buyer-card', selectedBuyer === buyer.id ? 'buyer-card-active' : '']"
+            class="buyer-card"
           >
             <view class="buyer-main">
               <view class="buyer-top">
@@ -167,64 +112,17 @@
                 </view>
               </view>
 
-              <view class="profit-grid">
-                <view class="profit-cell">
-                  <text class="profit-label">预估收入</text>
-                  <text class="profit-value">{{ formatCurrency(getEstimatedIncome(buyer)) }}</text>
+              <view class="profit-summary">
+                <view>
+                  <text class="profit-summary-title">收益测算</text>
+                  <text class="profit-summary-desc">按当前报价、可成交数量、距离和损耗估算</text>
                 </view>
-                <view class="profit-cell">
-                  <text class="profit-label">运输成本</text>
-                  <text class="profit-value cost">-{{ formatCurrency(buyer.transport) }}</text>
-                </view>
-                <view class="profit-cell">
-                  <text class="profit-label">预估损耗</text>
-                  <text class="profit-value cost">-{{ formatCurrency(buyer.loss) }}</text>
-                </view>
-                <view class="profit-cell profit-cell-main">
-                  <text class="profit-label">预计净收益</text>
-                  <text class="profit-value net">{{ formatCurrency(getNetProfit(buyer)) }}</text>
-                </view>
+                <text class="profit-summary-value">{{ formatCurrency(getNetProfit(buyer)) }}</text>
               </view>
 
               <view v-if="buyer.matchReason" class="reason-box">
                 <SvgIcon name="sparkles" :size="14" color="var(--acm-primary)" />
                 <text>{{ buyer.matchReason }}</text>
-              </view>
-
-              <view class="expand-trigger" @click="toggleBuyer(buyer)">
-                <text class="expand-text">收益测算</text>
-                <SvgIcon
-                  name="chevron-down"
-                  :size="14"
-                  color="var(--acm-text-muted)"
-                  :class="['arrow-icon', selectedBuyer === buyer.id ? 'expanded' : '']"
-                />
-              </view>
-
-              <view :class="['detail-box', selectedBuyer === buyer.id ? 'expanded' : '']">
-                <view class="detail-item">
-                  <text class="detail-label">预估收入</text>
-                  <text class="detail-value">{{ formatCurrency(getEstimatedIncome(buyer)) }}</text>
-                </view>
-                <view class="detail-item">
-                  <text class="detail-label">运输成本</text>
-                  <text class="detail-value cost">-{{ formatCurrency(buyer.transport) }}</text>
-                </view>
-                <view class="detail-item">
-                  <text class="detail-label">预估损耗</text>
-                  <text class="detail-value cost">-{{ formatCurrency(buyer.loss) }}</text>
-                </view>
-                <view class="detail-item detail-total">
-                  <text class="detail-label-total">预计净收益</text>
-                  <text :class="['detail-value-total', selectedBuyer === buyer.id ? 'detail-value-total-animate' : '']">
-                    {{ formatCurrency(displayNetProfit(buyer)) }}
-                  </text>
-                </view>
-                <text class="detail-note">按当前报价、可成交数量、距离和损耗估算，实际收益以最终成交为准。</text>
-                <button class="nav-btn" @click.stop="navigateBuyer(buyer)">
-                  <SvgIcon name="navigation" :size="14" color="var(--acm-primary)" />
-                  <text>查看导航</text>
-                </button>
               </view>
 
               <view class="action-row">
@@ -235,6 +133,10 @@
                 <button class="btn btn-ghost" @click="showInquiryScript(buyer)">
                   <SvgIcon name="message-square-text" :size="14" color="var(--acm-primary)" />
                   <text>询价话术</text>
+                </button>
+                <button class="btn btn-ghost" @click="navigateBuyer(buyer)">
+                  <SvgIcon name="navigation" :size="14" color="var(--acm-primary)" />
+                  <text>导航</text>
                 </button>
                 <button class="btn btn-main" @click="contactBoss(buyer)">
                   <SvgIcon name="phone" :size="14" color="var(--acm-white)" />
@@ -255,7 +157,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad, onUnload } from '@dcloudio/uni-app'
+import { onLoad } from '@dcloudio/uni-app'
 import EmptyState from '../../components/common/EmptyState.vue'
 import SvgIcon from '../../components/SvgIcon.vue'
 import BottomNav from '../../components/layout/BottomNav.vue'
@@ -268,7 +170,6 @@ import {
   getBuyerRecommendations,
   logBuyerInterest,
   type BuyerItem,
-  type BuyerRecommendationInfo,
   type MatchedProductItem,
   type MyProductItem,
 } from '../../api/agri'
@@ -276,57 +177,11 @@ import {
 const isDevMode = import.meta.env.DEV
 const buyers = ref<BuyerItem[]>([])
 const myProducts = ref<MyProductItem[]>([])
-const recommendation = ref<BuyerRecommendationInfo>({
-  provider: 'rule-fallback',
-  summary: '正在根据待售产品、收购价、需求量、距离、运输成本和损耗计算推荐结果...',
-})
 
-const selectedBuyer = ref<number | null>(null)
 const searchQuery = ref('')
 const isRefreshing = ref(false)
-const animatedNetProfitMap = ref<Record<number, number>>({})
-let netProfitTimer: ReturnType<typeof setInterval> | null = null
 
-const stopNetProfitTimer = () => {
-  if (netProfitTimer) {
-    clearInterval(netProfitTimer)
-    netProfitTimer = null
-  }
-}
-
-const animateNumber = (target: number, onUpdate: (n: number) => void) => {
-  stopNetProfitTimer()
-  let current = 0
-  const step = Math.max(1, Math.ceil(target / 30))
-  netProfitTimer = setInterval(() => {
-    current = Math.min(current + step, target)
-    onUpdate(current)
-    if (current >= target) {
-      stopNetProfitTimer()
-    }
-  }, 40)
-}
-
-const runNetProfitAnimation = (buyerId: number, target: number) => {
-  animatedNetProfitMap.value = {
-    ...animatedNetProfitMap.value,
-    [buyerId]: 0,
-  }
-  animateNumber(target, (n) => {
-    animatedNetProfitMap.value = {
-      ...animatedNetProfitMap.value,
-      [buyerId]: n,
-    }
-  })
-}
-
-const getEstimatedIncome = (buyer: BuyerItem) => Number(buyer.estimatedIncome || buyer.profit || 0)
 const getNetProfit = (buyer: BuyerItem) => Number(buyer.netProfit || 0)
-
-const displayNetProfit = (buyer: BuyerItem) => {
-  const value = animatedNetProfitMap.value[buyer.id]
-  return typeof value === 'number' ? value : getNetProfit(buyer)
-}
 
 const formatNumber = (value: number) => {
   if (!Number.isFinite(value)) return '0'
@@ -356,17 +211,9 @@ const getMatchedProducts = (buyer: BuyerItem): MatchedProductItem[] => {
 const applyBuyerData = (data: {
   buyers?: BuyerItem[]
   myProducts?: MyProductItem[]
-  recommendation?: BuyerRecommendationInfo
 }) => {
   buyers.value = data.buyers || []
   myProducts.value = data.myProducts || []
-  if (data.recommendation) {
-    recommendation.value = data.recommendation
-  }
-  animatedNetProfitMap.value = buyers.value.reduce<Record<number, number>>((acc, item) => {
-    acc[item.id] = getNetProfit(item)
-    return acc
-  }, {})
 }
 
 const logBuyerLoad = (message: string, detail?: Record<string, unknown>) => {
@@ -386,7 +233,6 @@ const loadData = async () => {
     logBuyerLoad('overview loaded', {
       buyers: buyers.value.length,
       myProducts: myProducts.value.length,
-      provider: recommendation.value.provider,
     })
   } catch (error) {
     logBuyerLoad('initial load failed', { error })
@@ -398,10 +244,6 @@ const loadData = async () => {
 
 onLoad(() => {
   void loadData()
-})
-
-const recommendationProviderText = computed(() => {
-  return recommendation.value.provider === 'dashscope' ? '大模型辅助分析' : '规则测算推荐'
 })
 
 const filteredBuyers = computed(() => {
@@ -418,8 +260,6 @@ const filteredBuyers = computed(() => {
         .includes(keyword)
     })
 })
-
-const topRevenueBuyers = computed(() => filteredBuyers.value.slice(0, 3))
 
 const emptyBuyerState = computed(() => {
   if (!myProducts.value.length) {
@@ -444,26 +284,6 @@ const merchantTypeLabel = (type?: string) => {
   return '综合商户'
 }
 
-const toggleBuyer = (buyer: BuyerItem) => {
-  if (selectedBuyer.value === buyer.id) {
-    selectedBuyer.value = null
-    return
-  }
-
-  selectedBuyer.value = buyer.id
-  runNetProfitAnimation(buyer.id, getNetProfit(buyer))
-  void logBuyerInterest({
-    merchantId: buyer.id,
-    actionType: 'view',
-    source: 'buyer-profit-detail',
-    extraPayload: {
-      matchScore: buyer.matchScore,
-      netProfit: buyer.netProfit,
-      merchantType: buyer.merchantType,
-    },
-  })
-}
-
 const refreshRecommendations = async () => {
   if (isRefreshing.value) return
   isRefreshing.value = true
@@ -484,7 +304,6 @@ const refreshRecommendations = async () => {
     logBuyerLoad('recommendation loaded', {
       buyers: buyers.value.length,
       myProducts: myProducts.value.length,
-      provider: recommendation.value.provider,
     })
     uni.showToast({ title: '已更新匹配结果', icon: 'success' })
   } catch (error) {
@@ -494,6 +313,10 @@ const refreshRecommendations = async () => {
     isRefreshing.value = false
     uni.hideLoading()
   }
+}
+
+const handleRematch = () => {
+  void refreshRecommendations()
 }
 
 const openNavigationLink = (url: string) => {
@@ -658,13 +481,10 @@ const goInterestList = () => {
   uni.navigateTo({ url: '/pages/buyer-interests/index' })
 }
 
-const goAddCrop = () => {
-  uni.navigateTo({ url: '/pages/add-crop/index' })
+const goMyProducts = () => {
+  uni.navigateTo({ url: '/pages/my-products/index' })
 }
 
-onUnload(() => {
-  stopNetProfitTimer()
-})
 </script>
 
 <style scoped lang="scss">
@@ -720,17 +540,6 @@ onUnload(() => {
   color: var(--acm-text-muted);
 }
 
-.icon-btn {
-  width: 80rpx;
-  height: 80rpx;
-  border: 0;
-  border-radius: 9999rpx;
-  background: var(--acm-bg-panel);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .header-actions {
   display: flex;
   align-items: center;
@@ -754,91 +563,10 @@ onUnload(() => {
   padding: 24rpx;
 }
 
-.recommendation-card {
-  background: linear-gradient(180deg, var(--acm-bg-card) 0%, var(--acm-harvest-gold-soft) 100%);
-  border: 2rpx solid var(--acm-border-warning);
-}
-
-.recommendation-head,
-.card-head,
-.comparison-top,
-.product-title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.recommendation-head,
-.card-head {
-  margin-bottom: 20rpx;
-}
-
-.recommendation-provider,
-.card-note {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: var(--acm-soil-earth);
-}
-
-.recommendation-summary {
-  display: block;
-  font-size: 26rpx;
-  line-height: 1.6;
-  color: var(--acm-text-secondary);
-}
-
-.card-title {
-  font-size: 34rpx;
-  color: var(--acm-text-primary);
-}
-
-.text-btn {
-  border: 0;
-  background: transparent;
-  color: var(--acm-primary);
-  font-size: 26rpx;
-}
-
-.product-list,
-.comparison-list,
 .list-wrap {
   display: flex;
   flex-direction: column;
   gap: 18rpx;
-}
-
-.product-item {
-  border-radius: 24rpx;
-  background: var(--acm-bg-success-soft);
-  padding: 24rpx;
-}
-
-.product-name {
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  font-size: 30rpx;
-  color: var(--acm-text-primary);
-}
-
-.product-market {
-  font-size: 23rpx;
-  color: var(--acm-primary);
-}
-
-.product-meta-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx 20rpx;
-  margin-top: 16rpx;
-  font-size: 24rpx;
-  color: var(--acm-text-secondary);
-}
-
-.product-meta-grid text {
-  width: calc((100% - 20rpx) / 2);
 }
 
 .search-box {
@@ -860,50 +588,54 @@ onUnload(() => {
   color: var(--acm-text-primary);
 }
 
-.comparison-card {
-  border: 2rpx solid var(--acm-border-success);
+.buyer-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
+  margin: 20rpx 0 0;
 }
 
-.comparison-item {
-  border-radius: 22rpx;
-  background: var(--acm-bg-soft);
-  padding: 22rpx;
-}
-
-.comparison-name {
-  font-size: 28rpx;
-  color: var(--acm-text-primary);
-}
-
-.comparison-net {
-  font-size: 30rpx;
-  color: var(--acm-primary);
-}
-
-.comparison-formula {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  line-height: 1.5;
-  color: var(--acm-text-secondary);
-}
-
-.section-head {
+.buyer-quick-action {
+  min-height: 96rpx;
+  padding: 0 22rpx;
+  border: 1rpx solid rgba(214, 221, 214, 0.9);
+  border-radius: 26rpx;
+  background: var(--acm-bg-card);
+  box-shadow: 0 8rpx 22rpx rgba(31, 42, 35, 0.06);
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  color: var(--acm-text-primary);
+  font-size: 26rpx;
+  font-weight: 800;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+.buyer-quick-action::after {
+  border: 0;
+}
+
+.match-result__head {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 16rpx;
   margin: 0 8rpx 20rpx;
 }
 
-.section-left,
+.match-result__head > view {
+  min-width: 0;
+  flex: 1;
+}
+
 .section-title-wrap,
 .buyer-meta,
 .meta-item,
 .rank-row,
 .action-row,
-.reason-box,
-.expand-trigger,
-.nav-btn {
+.reason-box {
   display: flex;
   align-items: center;
 }
@@ -912,14 +644,39 @@ onUnload(() => {
   gap: 10rpx;
 }
 
-.section-title {
+.match-result__title {
   font-size: 34rpx;
   color: var(--acm-text-primary);
 }
 
-.section-note {
+.match-result__desc {
+  display: block;
+  margin-top: 8rpx;
   font-size: 24rpx;
   color: var(--acm-text-muted);
+}
+
+.rematch-btn {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0 22rpx;
+  min-height: 56rpx;
+  border: 1rpx solid rgba(54, 125, 73, 0.18);
+  border-radius: 999rpx;
+  background: rgba(255, 254, 249, 0.96);
+  color: var(--acm-brand-primary);
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  box-shadow: 0 6rpx 16rpx rgba(64, 84, 62, 0.07);
+}
+
+.rematch-btn::after {
+  border: 0;
 }
 
 .buyer-card {
@@ -927,10 +684,6 @@ onUnload(() => {
   background: var(--acm-white);
   overflow: hidden;
   box-shadow: var(--acm-shadow-sm);
-}
-
-.buyer-card-active {
-  box-shadow: 0 0 0 4rpx var(--acm-ring-primary-35);
 }
 
 .buyer-main {
@@ -1024,9 +777,8 @@ onUnload(() => {
 }
 
 .matched-box,
-.profit-grid,
-.reason-box,
-.detail-box {
+.profit-summary,
+.reason-box {
   border-radius: 24rpx;
 }
 
@@ -1050,39 +802,37 @@ onUnload(() => {
   margin-bottom: 0;
 }
 
-.profit-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
+.profit-summary {
   background: var(--acm-brand-primary-soft);
-  padding: 20rpx;
+  padding: 22rpx;
   margin-bottom: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
 }
 
-.profit-cell {
-  width: calc((100% - 16rpx) / 2);
-}
-
-.profit-label {
+.profit-summary-title {
   display: block;
-  font-size: 22rpx;
-  color: var(--acm-text-muted);
-  margin-bottom: 6rpx;
-}
-
-.profit-value {
-  display: block;
-  font-size: 28rpx;
-  color: var(--acm-text-primary);
-}
-
-.profit-value.cost {
-  color: var(--acm-danger);
-}
-
-.profit-value.net {
   color: var(--acm-brand-primary-dark);
-  font-size: 34rpx;
+  font-size: 28rpx;
+  font-weight: 850;
+}
+
+.profit-summary-desc {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--acm-text-secondary);
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.profit-summary-value {
+  flex: 0 0 auto;
+  color: var(--acm-brand-primary-dark);
+  font-size: 40rpx;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .reason-box {
@@ -1094,101 +844,6 @@ onUnload(() => {
   font-size: 24rpx;
   line-height: 1.6;
   color: var(--acm-text-secondary);
-}
-
-.expand-trigger {
-  border-radius: 24rpx;
-  background: var(--acm-bg-panel-alt);
-  padding: 24rpx;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
-}
-
-.expand-text {
-  font-size: 26rpx;
-  color: var(--acm-text-secondary);
-}
-
-.arrow-icon {
-  transition: transform 0.3s ease;
-}
-
-.arrow-icon.expanded {
-  transform: rotate(180deg);
-}
-
-.detail-box {
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  background: var(--acm-bg-soft);
-  padding: 0 24rpx;
-  margin-bottom: 0;
-  transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease, margin 0.3s ease;
-}
-
-.detail-box.expanded {
-  max-height: 720rpx;
-  opacity: 1;
-  padding: 24rpx;
-  margin-bottom: 24rpx;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16rpx;
-}
-
-.detail-total {
-  padding-top: 16rpx;
-  border-top: 2rpx solid var(--acm-line-neutral-2);
-}
-
-.detail-label,
-.detail-label-total {
-  font-size: 26rpx;
-  color: var(--acm-text-secondary);
-}
-
-.detail-value {
-  font-size: 26rpx;
-  color: var(--acm-text-primary);
-}
-
-.cost {
-  color: var(--acm-danger);
-}
-
-.detail-value-total {
-  font-size: 36rpx;
-  color: var(--acm-primary);
-}
-
-.detail-note {
-  display: block;
-  font-size: 24rpx;
-  line-height: 1.5;
-  color: var(--acm-text-muted);
-  margin-top: 18rpx;
-}
-
-.nav-btn {
-  justify-content: center;
-  gap: 8rpx;
-  width: 100%;
-  border: 0;
-  border-radius: 18rpx;
-  background: var(--acm-brand-primary-soft);
-  color: var(--acm-brand-primary);
-  font-size: 26rpx;
-  padding: 18rpx 0;
-  margin-top: 18rpx;
-}
-
-.detail-value-total-animate {
-  animation: profitPop 0.45s ease;
 }
 
 .action-row {
@@ -1229,18 +884,6 @@ onUnload(() => {
   padding: 32rpx 0;
 }
 
-@keyframes profitPop {
-  0% {
-    transform: scale(0.94);
-  }
-  65% {
-    transform: scale(1.08);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
 /* Round 2 visual convergence: supply-demand command cards */
 .page {
   background: var(--acm-bg-app);
@@ -1270,15 +913,8 @@ onUnload(() => {
   opacity: 0.86;
 }
 
-.icon-btn {
-  background: rgba(255, 254, 249, 0.18);
-  border: 1rpx solid rgba(255, 254, 249, 0.3);
-}
-
 .card,
 .buyer-card,
-.comparison-card,
-.recommendation-card,
 .card-search {
   border-width: 1rpx;
   border-color: rgba(207, 222, 202, 0.86);
@@ -1286,38 +922,13 @@ onUnload(() => {
   background: linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(248, 251, 245, 0.96));
 }
 
-.recommendation-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.recommendation-card::after {
-  content: '';
-  position: absolute;
-  right: 18rpx;
-  bottom: 16rpx;
-  width: 190rpx;
-  height: 82rpx;
-  border-radius: 999rpx;
-  background: repeating-linear-gradient(105deg, rgba(122, 101, 72, 0.09) 0 2rpx, transparent 2rpx 16rpx);
-  opacity: 0.42;
-  pointer-events: none;
-}
-
-.product-item,
 .search-box,
 .matched-box,
-.profit-cell,
-.comparison-item,
-.detail-card {
+.profit-summary,
+.buyer-quick-action {
   border-color: rgba(200, 222, 197, 0.62);
   background: rgba(255, 254, 249, 0.74);
   box-shadow: none;
-}
-
-.buyer-card-active {
-  border-color: rgba(54, 125, 73, 0.52);
-  box-shadow: 0 12rpx 28rpx rgba(37, 84, 58, 0.12);
 }
 
 .rank-label,

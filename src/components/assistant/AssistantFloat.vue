@@ -1,7 +1,7 @@
 <template>
   <view class="assistant-float">
     <button v-if="!open" class="float-btn" @click="open = true">
-      <SvgIcon name="mic" :size="25" color="var(--acm-brand-primary-dark)" :stroke-width="2.35" />
+      <SvgIcon class="float-btn__icon" name="mic" :size="30" color="var(--acm-brand-primary-dark)" :stroke-width="2.35" />
     </button>
     <view v-if="open" class="assistant-mask" @click="open = false"></view>
     <view v-if="open" class="assistant-sheet">
@@ -48,6 +48,17 @@ const open = ref(false)
   justify-content: center;
   pointer-events: auto;
   opacity: 0.96;
+}
+
+.float-btn__icon {
+  width: 60rpx;
+  height: 60rpx;
+  flex: 0 0 60rpx;
+}
+
+.float-btn__icon :deep(svg) {
+  width: 60rpx;
+  height: 60rpx;
 }
 
 .assistant-mask {

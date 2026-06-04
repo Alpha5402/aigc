@@ -70,6 +70,13 @@
 			}
 		},
 		{
+			"path": "pages/my-products/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "我的代售产品"
+			}
+		},
+		{
 			"path": "pages/buyer-interests/index",
 			"style": {
 				"navigationStyle": "custom",
