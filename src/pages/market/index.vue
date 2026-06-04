@@ -1418,11 +1418,6 @@ const openRecommendation = (recommendation: RecommendationItem) => {
   opacity: 0.86;
 }
 
-.user-notice-bell {
-  background: rgba(255, 254, 249, 0.18);
-  border: 1rpx solid rgba(255, 254, 249, 0.3);
-}
-
 .tab-wrap,
 .alerts,
 .card {

@@ -24,7 +24,7 @@
             </view>
           </view>
           <button class="user-notice-bell" @click="showNotice">
-            <SvgIcon name="bell" :size="20" color="var(--acm-white)" />
+            <SvgIcon name="bell" :size="20" color="var(--acm-text-secondary)" />
             <view v-if="hasUnreadNotice" class="notice-dot"></view>
           </button>
         </view>
@@ -434,13 +434,6 @@ const goToMarket = () => {
   font-size: 24rpx;
 }
 
-/* 首页铃铛：白色半透明背景适配绿色渐变 header */
-.user-notice-bell {
-  background: var(--acm-white-20);
-  color: var(--acm-white);
-  box-shadow: none;
-}
-
 .notice-dot {
   position: absolute;
   top: 12rpx;
@@ -449,7 +442,7 @@ const goToMarket = () => {
   height: 16rpx;
   border-radius: 50%;
   background: var(--acm-danger);
-  border: 4rpx solid var(--acm-primary);
+  border: 4rpx solid var(--acm-white);
 }
 
 .weather-card {

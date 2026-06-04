@@ -1224,8 +1224,7 @@ onUnload(() => {
   opacity: 0.86;
 }
 
-.icon-btn,
-.user-notice-bell {
+.icon-btn {
   background: rgba(255, 254, 249, 0.18);
   border: 1rpx solid rgba(255, 254, 249, 0.3);
 }

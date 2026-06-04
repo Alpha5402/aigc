@@ -13,8 +13,8 @@
             <text class="field-hero__eyebrow">云上农管家 · 农场中控</text>
             <text class="field-hero__title">我的地</text>
           </view>
-          <button class="hero-action acm-touchable" @click="showNotice">
-            <SvgIcon name="bell" :size="19" color="var(--acm-brand-primary-dark)" />
+          <button class="user-notice-bell acm-touchable" @click="showNotice">
+            <SvgIcon name="bell" :size="20" color="var(--acm-text-secondary)" />
           </button>
         </view>
 
@@ -528,27 +528,6 @@ const confirmRemoveCrop = (crop: CropInfo) => {
   font-size: 48rpx;
   font-weight: 850;
   line-height: 1.08;
-}
-
-.hero-action {
-  width: 64rpx;
-  height: 64rpx;
-  flex: 0 0 64rpx;
-  border: 0;
-  border-radius: 22rpx;
-  background: rgba(255, 254, 249, 0.76);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8rpx 22rpx rgba(21, 52, 30, 0.14);
-  margin: 0;
-  padding: 0;
-  line-height: 1;
-  box-sizing: border-box;
-}
-
-.hero-action::after {
-  border: 0;
 }
 
 .field-hero__copy {
