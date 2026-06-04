@@ -26,7 +26,7 @@
           <EmptyState
             v-if="myProducts.length === 0"
             title="暂无待售产品"
-            description="请先在“我的地”中添加作物、预期产出和预计上市时间，系统将据此计算销路匹配结果。"
+            description="请先在我的地添加待售作物和预期产出，系统将据此计算销路匹配结果。"
             action-text="去添加作物"
             @action="goAddCrop"
           />
@@ -105,10 +105,10 @@
 
         <view v-if="filteredBuyers.length === 0" class="list-wrap">
           <EmptyState
-            title="暂无匹配商户"
-            description="当前待售产品暂未匹配到合适收购商，可调整作物信息或稍后重试。"
+            :title="emptyBuyerState.title"
+            :description="emptyBuyerState.description"
             action-text="重新匹配"
-            @action="loadData"
+            @action="refreshRecommendations"
           />
         </view>
 
@@ -260,6 +260,7 @@ import EmptyState from '../../components/common/EmptyState.vue'
 import SvgIcon from '../../components/SvgIcon.vue'
 import BottomNav from '../../components/layout/BottomNav.vue'
 import AssistantFloat from '../../components/assistant/AssistantFloat.vue'
+import { hasValidStoredToken } from '../../utils/auth-guard'
 import { getCurrentLocationPayload } from '../../utils/location'
 import {
   getBuyerData,
@@ -272,6 +273,7 @@ import {
   type MyProductItem,
 } from '../../api/agri'
 
+const isDevMode = import.meta.env.DEV
 const buyers = ref<BuyerItem[]>([])
 const myProducts = ref<MyProductItem[]>([])
 const recommendation = ref<BuyerRecommendationInfo>({
@@ -351,21 +353,43 @@ const getMatchedProducts = (buyer: BuyerItem): MatchedProductItem[] => {
   }))
 }
 
+const applyBuyerData = (data: {
+  buyers?: BuyerItem[]
+  myProducts?: MyProductItem[]
+  recommendation?: BuyerRecommendationInfo
+}) => {
+  buyers.value = data.buyers || []
+  myProducts.value = data.myProducts || []
+  if (data.recommendation) {
+    recommendation.value = data.recommendation
+  }
+  animatedNetProfitMap.value = buyers.value.reduce<Record<number, number>>((acc, item) => {
+    acc[item.id] = getNetProfit(item)
+    return acc
+  }, {})
+}
+
+const logBuyerLoad = (message: string, detail?: Record<string, unknown>) => {
+  if (!isDevMode) return
+  console.log(`[buyer] ${message}`, detail || '')
+}
+
 const loadData = async () => {
   uni.showLoading({ title: '加载中...' })
   try {
+    logBuyerLoad('start initial load')
     const location = await getCurrentLocationPayload()
-    const data = location
-      ? await getBuyerRecommendations({ currentLocation: location })
-      : await getBuyerData()
-    buyers.value = data.buyers || []
-    myProducts.value = data.myProducts || []
-    recommendation.value = data.recommendation
-    animatedNetProfitMap.value = buyers.value.reduce<Record<number, number>>((acc, item) => {
-      acc[item.id] = getNetProfit(item)
-      return acc
-    }, {})
-  } catch (_error) {
+    logBuyerLoad('location resolved', { hasLocation: Boolean(location), location })
+    logBuyerLoad('request buyer overview', { api: 'GET /buyer/overview' })
+    const data = await getBuyerData()
+    applyBuyerData(data)
+    logBuyerLoad('overview loaded', {
+      buyers: buyers.value.length,
+      myProducts: myProducts.value.length,
+      provider: recommendation.value.provider,
+    })
+  } catch (error) {
+    logBuyerLoad('initial load failed', { error })
     uni.showToast({ title: '请求失败', icon: 'error' })
   } finally {
     uni.hideLoading()
@@ -396,6 +420,19 @@ const filteredBuyers = computed(() => {
 })
 
 const topRevenueBuyers = computed(() => filteredBuyers.value.slice(0, 3))
+
+const emptyBuyerState = computed(() => {
+  if (!myProducts.value.length) {
+    return {
+      title: '暂无待售产品',
+      description: '请先在我的地添加待售作物和预期产出，系统将据此计算销路匹配结果。',
+    }
+  }
+  return {
+    title: '当前作物暂无报价匹配',
+    description: '当前作物暂无商户报价匹配，可到后台补充商户报价或添加苹果/大豆测试。',
+  }
+})
 
 const onSearchInput = (event: any) => {
   searchQuery.value = event?.detail?.value || ''
@@ -432,17 +469,26 @@ const refreshRecommendations = async () => {
   isRefreshing.value = true
   uni.showLoading({ title: '重新测算中...' })
   try {
+    if (!hasValidStoredToken()) {
+      logBuyerLoad('skip personalized recommend without token', { api: 'GET /buyer/overview' })
+      const data = await getBuyerData()
+      applyBuyerData(data)
+      uni.showToast({ title: '登录后可进行个性化销路匹配', icon: 'none' })
+      return
+    }
     const location = await getCurrentLocationPayload(true)
+    logBuyerLoad('refresh location resolved', { hasLocation: Boolean(location), location })
+    logBuyerLoad('request buyer recommendation', { api: 'POST /buyer/recommend' })
     const data = await getBuyerRecommendations(location ? { currentLocation: location } : undefined)
-    buyers.value = data.buyers || []
-    myProducts.value = data.myProducts || []
-    recommendation.value = data.recommendation
-    animatedNetProfitMap.value = buyers.value.reduce<Record<number, number>>((acc, item) => {
-      acc[item.id] = getNetProfit(item)
-      return acc
-    }, {})
+    applyBuyerData(data)
+    logBuyerLoad('recommendation loaded', {
+      buyers: buyers.value.length,
+      myProducts: myProducts.value.length,
+      provider: recommendation.value.provider,
+    })
     uni.showToast({ title: '已更新匹配结果', icon: 'success' })
-  } catch (_error) {
+  } catch (error) {
+    logBuyerLoad('recommendation failed', { error })
     uni.showToast({ title: '匹配失败', icon: 'error' })
   } finally {
     isRefreshing.value = false

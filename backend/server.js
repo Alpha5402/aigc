@@ -40,6 +40,7 @@ const OSS_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const DASHSCOPE_API_URL =
   process.env.DASHSCOPE_API_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 const MARKET_REPORT_AI_ENABLED = String(process.env.MARKET_REPORT_AI_ENABLED || 'false') === 'true'
+const BUYER_AI_ENABLED = String(process.env.BUYER_AI_ENABLED || 'false') === 'true'
 
 app.use(express.json({ limit: '12mb' }))
 app.use((req, res, next) => {
@@ -1396,7 +1397,7 @@ const callDashScopeBuyerRecommendation = async ({ myProducts, candidates }) => {
   const result = await callDashScopeMessage({
     model,
     enableThinking: String(process.env.DASHSCOPE_ENABLE_THINKING || 'true') === 'true',
-    timeoutMs: Number(process.env.BUYER_RECOMMEND_AI_TIMEOUT_MS || process.env.AI_TIMEOUT_MS || 6000),
+    timeoutMs: Number(process.env.BUYER_RECOMMEND_AI_TIMEOUT_MS || process.env.AI_TIMEOUT_MS || 2500),
     messages: [
       {
         role: 'system',
@@ -1484,12 +1485,20 @@ const recommendBuyersForUser = async ({ userId, origin = DEFAULT_ORIGIN, persist
     }
   }
 
-  const aiResult = await callDashScopeBuyerRecommendation({ myProducts, candidates: ruleMatches })
   let buyers = ruleMatches
   let provider = 'rule-fallback'
   let summary = ruleMatches[0]
     ? `综合测算后，建议优先联系「${ruleMatches[0].name}」。该商户预计净收益最高，且可消化当前主要待售产品。`
     : '已根据待售产品、收购价、需求量、距离、运输成本和预估损耗，为你计算出更值得优先联系的收购商。'
+  let aiResult = null
+
+  if (BUYER_AI_ENABLED) {
+    try {
+      aiResult = await callDashScopeBuyerRecommendation({ myProducts, candidates: ruleMatches })
+    } catch (error) {
+      console.warn('[buyer-recommend] DashScope recommendation failed, fallback to rules:', error.message || error)
+    }
+  }
 
   if (aiResult?.picks?.length) {
     const pickMap = new Map(aiResult.picks.map((item) => [item.merchantId, item]))

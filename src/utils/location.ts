@@ -1,5 +1,7 @@
 const LOCATION_CACHE_KEY = 'acm_current_location_v1'
 const LOCATION_CACHE_TTL_MS = 10 * 60 * 1000
+const LOCATION_REQUEST_TIMEOUT_MS = 3000
+const isDevMode = import.meta.env.DEV
 
 export interface CurrentLocationPayload {
   latitude: number
@@ -44,6 +46,21 @@ export const getCurrentLocationPayload = async (forceRefresh = false): Promise<C
   }
 
   return new Promise((resolve) => {
+    let settled = false
+    const finish = (payload: CurrentLocationPayload | null, reason?: string) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeoutId)
+      if (!payload && reason && isDevMode) {
+        console.warn(`[location] ${reason}`)
+      }
+      resolve(payload)
+    }
+
+    const timeoutId = setTimeout(() => {
+      finish(null, `getLocation timeout after ${LOCATION_REQUEST_TIMEOUT_MS}ms`)
+    }, LOCATION_REQUEST_TIMEOUT_MS)
+
     uni.getLocation({
       type: 'gcj02',
       success: (res) => {
@@ -53,12 +70,14 @@ export const getCurrentLocationPayload = async (forceRefresh = false): Promise<C
         }
         if (Number.isFinite(payload.latitude) && Number.isFinite(payload.longitude)) {
           writeLocationCache(payload)
-          resolve(payload)
+          finish(payload)
           return
         }
-        resolve(null)
+        finish(null, 'getLocation returned invalid coordinates')
       },
-      fail: () => resolve(null),
+      fail: (error) => {
+        finish(null, error?.errMsg || 'getLocation failed')
+      },
     })
   })
 }
