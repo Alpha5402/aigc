@@ -1,0 +1,23 @@
+{
+  "name": "agricloud-backend",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test:forecast": "node --test test/forecast/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "archiver": "^8.0.0",
+    "express": "^4.20.0",
+    "node-cron": "^3.0.3",
+    "robots-parser": "^3.0.1",
+    "ssh2": "^1.17.0"
+  },
+  "devDependencies": {
+    "fast-check": "^3.23.2"
+  }
+}

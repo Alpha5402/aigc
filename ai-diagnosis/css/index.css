@@ -1,0 +1,235 @@
+/* 农业主题滚动条样式 */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+    border-radius: 3px;
+    opacity: 0.5;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #059669 0%, #047857 100%);
+}
+/* 深色模式滚动条 */
+.dark ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.5) 0%, rgba(5, 150, 105, 0.5) 100%);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.8) 0%, rgba(5, 150, 105, 0.8) 100%);
+}
+
+/* Markdown 样式自定义 */
+.markdown-body p { margin-bottom: 0.75em; line-height: 1.6; }
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; }
+.markdown-body h1 { font-size: 1.5em; }
+.markdown-body h2 { font-size: 1.25em; }
+.markdown-body ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.75em; }
+.markdown-body ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 0.75em; }
+.markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
+.markdown-body th, .markdown-body td { border: 1px solid #d1d5db; padding: 0.5em; }
+.dark .markdown-body th, .dark .markdown-body td { border: 1px solid #4b5563; }
+.markdown-body a { color: #10b981; text-decoration: none; }
+.markdown-body a:hover { text-decoration: underline; }
+.markdown-body blockquote { border-left: 4px solid #10b981; padding-left: 1em; color: #6b7280; margin-bottom: 0.75em; }
+.dark .markdown-body blockquote { border-left: 4px solid #34d399; color: #9ca3af; }
+
+/* 打字机光标动画 */
+.cursor-blink {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background-color: currentColor;
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+    margin-left: 2px;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* 消息气泡样式 */
+.message-wrapper {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+.message-wrapper.user {
+    flex-direction: row-reverse;
+}
+
+.message-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.message-avatar:hover {
+    transform: scale(1.1);
+}
+.message-wrapper.user .message-avatar {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+.message-wrapper.assistant .message-avatar {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(52, 211, 153, 0.3);
+}
+
+.message-content {
+    flex: 1;
+    max-width: 75%;
+}
+.message-wrapper.user .message-content {
+    text-align: right;
+}
+
+.message-bubble {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    display: inline-block;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.message-wrapper.user .message-bubble {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-bottom-right-radius: 0.25rem;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+.message-wrapper.assistant .message-bubble {
+    background-color: #f3f4f6;
+    color: #1f2937;
+    border-bottom-left-radius: 0.25rem;
+    border: 1px solid #e5e7eb;
+}
+
+/* 深色模式消息气泡 */
+.dark .message-wrapper.assistant .message-bubble {
+    background-color: #1f2937;
+    color: #f3f4f6;
+    border: 1px solid #374151;
+}
+
+/* 代码块样式 */
+.code-block {
+    background-color: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    overflow-x: auto;
+}
+.code-block .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    color: #9ca3af;
+    font-size: 0.75rem;
+}
+.code-block pre {
+    margin: 0;
+    color: #f3f4f6;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* 农业主题动画关键帧 */
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes spin-fast {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes glow-pulse {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(16, 185, 129, 0.5), 0 0 10px rgba(16, 185, 129, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.8), 0 0 25px rgba(16, 185, 129, 0.5);
+    }
+}
+
+/* 快捷建议卡片悬浮光效 */
+.suggestion-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.suggestion-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.1), transparent);
+    transition: left 0.5s ease;
+    pointer-events: none;
+}
+
+.suggestion-card:hover::before {
+    left: 100%;
+}
+
+/* 输入框聚焦时的呼吸光效 */
+@keyframes input-glow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+    }
+}
+
+/* 消息出现动画 */
+@keyframes message-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-wrapper {
+    animation: message-in 0.3s ease-out;
+}
+
+/* 农业主题特殊样式 */
+.agri-gradient-text {
+    background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* 叶子图标动画 */
+@keyframes leaf-sway {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+}
+
+.leaf-icon {
+    animation: leaf-sway 2s ease-in-out infinite;
+    transform-origin: bottom center;
+}

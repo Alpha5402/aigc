@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>农智助手 - 安全配置</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#22c55e',
+                        secondary: '#16a34a',
+                        accent: '#4ade80',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .form-container { max-width: 480px; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-[#0f172a] dark:text-gray-200 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+    <div class="form-container w-full bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl transition-colors duration-300 border border-gray-200 dark:border-gray-700">
+        <h1 class="text-2xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 mb-8">
+            <i class="fa-solid fa-seedling mr-2"></i>农智助手 - 安全配置
+        </h1>
+
+        <div class="space-y-6">
+            <!-- 百炼 API Key -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    百炼 (Bailian) API Key <span class="text-red-500 dark:text-red-400">*</span>
+                </label>
+                <input type="password" id="bailianKey"
+                       class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-300"
+                       placeholder="sk-...">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">用于调用大模型，请在阿里云百炼控制台获取。</p>
+            </div>
+
+            <!-- 模型选择 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    模型选择 <span class="text-red-500 dark:text-red-400">*</span>
+                </label>
+                <select id="modelSelect"
+                        class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 dark:text-white transition-colors duration-300">
+                    <option value="qwen-vl-max">Qwen-VL-Max (视觉模型推荐)</option>
+                    <option value="qwen-vl-plus">Qwen-VL-Plus (视觉模型)</option>
+                    <option value="qwen-vl-ocr">Qwen-VL-OCR (OCR增强)</option>
+                    <option value="qwen-turbo">Qwen Turbo</option>
+                    <option value="qwen-plus">Qwen Plus</option>
+                    <option value="qwen-max">Qwen Max</option>
+                </select>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">视觉模型支持图像识别，适合农作物病害诊断。</p>
+            </div>
+
+            <!-- OSS Access Key ID (可选) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    OSS Access Key ID <span class="text-gray-400 dark:text-gray-500">(可选)</span>
+                </label>
+                <input type="text" id="ossAccessKeyId"
+                       class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-300"
+                       placeholder="LTAI5t...">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">仅在需要上传图片功能时填写。</p>
+            </div>
+
+            <!-- OSS Secret Key (可选) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    OSS Secret Access Key <span class="text-gray-400 dark:text-gray-500">(可选)</span>
+                </label>
+                <input type="password" id="ossSecretKey"
+                       class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-300"
+                       placeholder="...">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">仅在需要上传图片功能时填写。</p>
+            </div>
+        </div>
+
+        <div class="mt-10 space-y-4">
+            <button id="saveBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i>
+                保存并返回
+            </button>
+        </div>
+
+        <div id="statusMsg" class="mt-4 text-sm text-center hidden"></div>
+    </div>
+
+    <script>
+        // 主题初始化逻辑
+        const htmlElement = document.documentElement;
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('nongzhi-theme-mode');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                htmlElement.classList.add('dark');
+            } else {
+                htmlElement.classList.remove('dark');
+            }
+        }
+
+        // 执行初始化
+        initTheme();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const saveBtn = document.getElementById('saveBtn');
+            const statusMsg = document.getElementById('statusMsg');
+
+            // 页面加载时，尝试从 localStorage 填充已有值
+            function loadSavedConfig() {
+                document.getElementById('bailianKey').value = localStorage.getItem('BAI_LIAN_API_KEY') || '';
+                document.getElementById('modelSelect').value = localStorage.getItem('MODEL_NAME') || 'qwen-vl-max';
+                document.getElementById('ossAccessKeyId').value = localStorage.getItem('OSS_ACCESS_KEY_ID') || '';
+                document.getElementById('ossSecretKey').value = localStorage.getItem('OSS_ACCESS_KEY_SECRET') || '';
+            }
+            loadSavedConfig();
+
+            // 保存配置逻辑
+            saveBtn.addEventListener('click', function() {
+                const bailianKey = document.getElementById('bailianKey').value.trim();
+                const modelName = document.getElementById('modelSelect').value;
+
+                if (!bailianKey) {
+                    showStatus('请填写百炼 API Key', 'red');
+                    return;
+                }
+
+                if (!modelName) {
+                    showStatus('请选择模型', 'red');
+                    return;
+                }
+
+                // 保存到浏览器
+                localStorage.setItem('BAI_LIAN_API_KEY', bailianKey);
+                localStorage.setItem('MODEL_NAME', modelName);
+                localStorage.setItem('OSS_ACCESS_KEY_ID', document.getElementById('ossAccessKeyId').value.trim());
+                localStorage.setItem('OSS_ACCESS_KEY_SECRET', document.getElementById('ossSecretKey').value.trim());
+
+                showStatus('保存成功！正在返回主页面...', 'green');
+
+                // 延迟返回，给用户反馈时间
+                setTimeout(() => {
+                    window.location.href = 'index.html'; // 跳转回主页面
+                }, 1500);
+            });
+
+            // 辅助函数：显示状态信息
+            function showStatus(msg, color) {
+                statusMsg.textContent = msg;
+                statusMsg.className = `mt-4 text-sm text-center
+                    ${color === 'green' ? 'text-green-500' :
+                      color === 'red' ? 'text-red-400' :
+                      'text-yellow-400'}`;
+                statusMsg.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

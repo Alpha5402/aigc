@@ -1,0 +1,2 @@
+VITE_API_BASE_URL=http://10.242.166.161:3000/api
+VITE_UPLOAD_URL=http://10.242.166.161:3000/api/oss/sign

@@ -1,0 +1,36 @@
+@import "./tokens.scss";
+
+page {
+  background: var(--acm-bg-app);
+  color: var(--acm-text-primary);
+  font-size: var(--acm-font-body);
+}
+
+.acm-page-bg {
+  background: var(--acm-bg-app);
+}
+
+.acm-card {
+  border: 2rpx solid var(--acm-border-soft);
+  border-radius: var(--acm-radius-card);
+  background: var(--acm-bg-card);
+  box-shadow: var(--acm-shadow-card);
+}
+
+.acm-card-soft {
+  background: var(--acm-bg-card-soft);
+}
+
+.acm-touchable {
+  transition: transform var(--acm-motion-fast) var(--acm-motion-ease), opacity var(--acm-motion-fast) var(--acm-motion-ease);
+}
+
+.acm-touchable:active {
+  transform: scale(0.98);
+  opacity: 0.92;
+}
+
+.acm-bottom-safe {
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}

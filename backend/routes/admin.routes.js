@@ -1,0 +1,33 @@
+const express = require('express')
+const adminController = require('../controllers/admin.controller')
+const { requireAuth } = require('../middlewares/auth')
+const { requireAdmin } = require('../middlewares/admin')
+
+const router = express.Router()
+
+router.use(requireAuth, requireAdmin)
+
+router.get('/dashboard', adminController.getDashboard)
+router.get('/users', adminController.getUsers)
+router.put('/users/role', adminController.updateUserRole)
+router.get('/spus', adminController.getSpus)
+router.get('/merchants', adminController.getMerchants)
+router.post('/merchants', adminController.createMerchant)
+router.put('/merchants', adminController.updateMerchant)
+router.delete('/merchants', adminController.deleteMerchant)
+router.post('/merchants/audit', adminController.auditMerchant)
+router.get('/market-items', adminController.getMarketItems)
+router.post('/market-items', adminController.createMarketItem)
+router.put('/market-items', adminController.updateMarketItem)
+router.delete('/market-items', adminController.deleteMarketItem)
+router.get('/notifications', adminController.getNotifications)
+router.post('/notifications', adminController.createNotification)
+router.post('/notifications/read-all', adminController.markNotificationsReadAll)
+router.get('/forecast/runs', adminController.getForecastRuns)
+router.post('/forecast/run', adminController.runForecast)
+router.get('/collection/logs', adminController.getCollectionLogs)
+router.get('/audit-logs', adminController.getAuditLogs)
+router.post('/rag/crawl', adminController.crawlRag)
+router.post('/demo/reset', adminController.resetDemo)
+
+module.exports = router

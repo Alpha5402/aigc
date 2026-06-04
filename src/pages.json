@@ -1,0 +1,105 @@
+{
+	"pages": [
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "首页"
+			}
+		},
+		{
+			"path": "pages/login/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "登录"
+			}
+		},
+		{
+			"path": "pages/register/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "注册"
+			}
+		},
+		{
+			"path": "pages/notification/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "通知中心"
+			}
+		},
+		{
+			"path": "pages/my-field/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "我的地"
+			}
+		},
+		{
+			"path": "pages/add-crop/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "添加作物",
+				"app-plus": {
+					"softinputMode": "adjustResize"
+				}
+			}
+		},
+		{
+			"path": "pages/market/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "行情"
+			}
+		},
+		{
+			"path": "pages/recommendation-detail/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "推荐详情"
+			}
+		},
+		{
+			"path": "pages/ai-consult/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "AI智能问诊",
+				"app-plus": {
+					"softinputMode": "adjustResize"
+				}
+			}
+		},
+		{
+			"path": "pages/buyer/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "销路匹配"
+			}
+		},
+		{
+			"path": "pages/buyer-interests/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "感兴趣商户"
+			}
+		},
+		{
+			"path": "pages/ads/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "营销助手"
+			}
+		},
+		{
+			"path": "pages/admin/index",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "AgriCloudManager",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	}
+}

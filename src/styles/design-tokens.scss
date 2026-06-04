@@ -1,0 +1,213 @@
+/*
+ * AgriCloudManager color system.
+ * Direction: warm field base, restrained leaf green, harvest accents, mist-blue data support.
+ * Scope: global tokens only. Page/component refactors should consume these variables, not invent local colors.
+ */
+
+/* Brand */
+$acm-brand-primary: #367d49;
+$acm-brand-primary-dark: #25543a;
+$acm-brand-primary-light: #dcefdc;
+$acm-brand-primary-soft: #eef7ec;
+
+/* Background */
+$acm-bg-app: #f6f3ea;
+$acm-bg-card: #fffef9;
+$acm-bg-card-soft: #f1f7ed;
+$acm-bg-elevated: #fffffb;
+$acm-bg-field-gradient: linear-gradient(180deg, #f8f5ec 0%, #eef6ea 100%);
+$acm-bg-field-hero: linear-gradient(160deg, #274a31 0%, #367d49 44%, #d6a83a 130%);
+$acm-bg-field-hero-fallback: radial-gradient(circle at 18% 12%, rgba(214, 168, 58, 0.26), transparent 30%),
+  linear-gradient(160deg, #274a31 0%, #367d49 48%, #e8d7a6 140%);
+$acm-bg-data-soft: #e6f1f4;
+$acm-bg-harvest-soft: #fff3d8;
+
+/* Text */
+$acm-text-primary: #213528;
+$acm-text-regular: #4d5f52;
+$acm-text-secondary: #748074;
+$acm-text-placeholder: #a6afa6;
+$acm-text-disabled: #c8cec5;
+$acm-text-inverse: #fffef7;
+
+/* Functional colors */
+$acm-success: #3f8f56;
+$acm-success-text: #2f7244;
+$acm-success-soft: #e7f3e7;
+
+$acm-warning: #c98f24;
+$acm-warning-text: #8a5f14;
+$acm-warning-soft: #fff3d8;
+
+$acm-danger: #bd554d;
+$acm-danger-text: #9f3f38;
+$acm-danger-soft: #f9e8e5;
+
+$acm-info: #5b91a8;
+$acm-info-text: #3f7085;
+$acm-info-soft: #e6f1f4;
+
+$acm-price-up: #c98024;
+$acm-price-up-text: #8a5d13;
+$acm-price-up-soft: #fff0d8;
+
+$acm-price-down: #3d7f68;
+$acm-price-down-text: #2f6654;
+$acm-price-down-soft: #e3f1ed;
+
+$acm-neutral: #7d867c;
+$acm-neutral-text: #626b61;
+$acm-neutral-soft: #eef0ec;
+
+/* Agricultural semantic colors */
+$acm-crop-leaf: #4e9a61;
+$acm-crop-leaf-soft: #e8f4e8;
+$acm-soil-earth: #7a6548;
+$acm-soil-earth-soft: #efe8dc;
+$acm-harvest-gold: #d6a83a;
+$acm-harvest-gold-soft: #fff4d7;
+$acm-sky-data: #6fa7bd;
+$acm-sky-data-soft: #e6f1f4;
+$acm-fruit-orange: #ad5a1e;
+$acm-fruit-orange-soft: #fff0df;
+
+/* Borders, shadows and focus */
+$acm-border-soft: #e5dfd0;
+$acm-border-strong: #d4cbb9;
+$acm-border-green: #c8dec5;
+$acm-shadow-soft: 0 8rpx 24rpx rgba(64, 84, 62, 0.08);
+$acm-shadow-card: 0 4rpx 16rpx rgba(64, 84, 62, 0.07);
+$acm-shadow-hero-card: 0 18rpx 42rpx rgba(38, 67, 43, 0.16);
+$acm-shadow-command: 0 28rpx 70rpx rgba(37, 84, 58, 0.22);
+$acm-ring-primary: rgba(63, 143, 86, 0.28);
+
+:root,
+page {
+  --acm-brand-primary: #{$acm-brand-primary};
+  --acm-brand-primary-dark: #{$acm-brand-primary-dark};
+  --acm-brand-primary-light: #{$acm-brand-primary-light};
+  --acm-brand-primary-soft: #{$acm-brand-primary-soft};
+
+  --acm-bg-app: #{$acm-bg-app};
+  --acm-bg-card: #{$acm-bg-card};
+  --acm-bg-card-soft: #{$acm-bg-card-soft};
+  --acm-bg-elevated: #{$acm-bg-elevated};
+  --acm-bg-field-gradient: #{$acm-bg-field-gradient};
+  --acm-bg-field-hero: #{$acm-bg-field-hero};
+  --acm-bg-field-hero-fallback: #{$acm-bg-field-hero-fallback};
+  --acm-bg-data-soft: #{$acm-bg-data-soft};
+  --acm-bg-harvest-soft: #{$acm-bg-harvest-soft};
+
+  --acm-text-primary: #{$acm-text-primary};
+  --acm-text-regular: #{$acm-text-regular};
+  --acm-text-secondary: #{$acm-text-secondary};
+  --acm-text-placeholder: #{$acm-text-placeholder};
+  --acm-text-disabled: #{$acm-text-disabled};
+  --acm-text-inverse: #{$acm-text-inverse};
+
+  --acm-success: #{$acm-success};
+  --acm-success-text: #{$acm-success-text};
+  --acm-success-soft: #{$acm-success-soft};
+  --acm-warning: #{$acm-warning};
+  --acm-warning-text: #{$acm-warning-text};
+  --acm-warning-soft: #{$acm-warning-soft};
+  --acm-danger: #{$acm-danger};
+  --acm-danger-text: #{$acm-danger-text};
+  --acm-danger-soft: #{$acm-danger-soft};
+  --acm-info: #{$acm-info};
+  --acm-info-text: #{$acm-info-text};
+  --acm-info-soft: #{$acm-info-soft};
+  --acm-price-up: #{$acm-price-up};
+  --acm-price-up-text: #{$acm-price-up-text};
+  --acm-price-up-soft: #{$acm-price-up-soft};
+  --acm-price-down: #{$acm-price-down};
+  --acm-price-down-text: #{$acm-price-down-text};
+  --acm-price-down-soft: #{$acm-price-down-soft};
+  --acm-neutral: #{$acm-neutral};
+  --acm-neutral-text: #{$acm-neutral-text};
+  --acm-neutral-soft: #{$acm-neutral-soft};
+
+  --acm-crop-leaf: #{$acm-crop-leaf};
+  --acm-crop-leaf-soft: #{$acm-crop-leaf-soft};
+  --acm-soil-earth: #{$acm-soil-earth};
+  --acm-soil-earth-soft: #{$acm-soil-earth-soft};
+  --acm-harvest-gold: #{$acm-harvest-gold};
+  --acm-harvest-gold-soft: #{$acm-harvest-gold-soft};
+  --acm-sky-data: #{$acm-sky-data};
+  --acm-sky-data-soft: #{$acm-sky-data-soft};
+  --acm-fruit-orange: #{$acm-fruit-orange};
+  --acm-fruit-orange-soft: #{$acm-fruit-orange-soft};
+
+  --acm-border-soft: #{$acm-border-soft};
+  --acm-border-strong: #{$acm-border-strong};
+  --acm-border-green: #{$acm-border-green};
+  --acm-shadow-soft: #{$acm-shadow-soft};
+  --acm-shadow-card: #{$acm-shadow-card};
+  --acm-shadow-hero-card: #{$acm-shadow-hero-card};
+  --acm-shadow-command: #{$acm-shadow-command};
+  --acm-ring-primary: #{$acm-ring-primary};
+  --acm-shadow-sm: var(--acm-shadow-card);
+  --acm-white: var(--acm-bg-card);
+  --acm-white-20: rgba(255, 254, 247, 0.2);
+  --acm-white-60: rgba(255, 254, 247, 0.6);
+  --acm-white-80: rgba(255, 254, 247, 0.82);
+  --acm-gray-200: var(--acm-neutral-soft);
+  --acm-ring-primary-35: rgba(63, 143, 86, 0.35);
+
+  /* Existing utility aliases. Keep these so migrated Tailwind-like classes inherit the new system. */
+  --acm-primary: var(--acm-brand-primary);
+  --acm-primary-dark: var(--acm-brand-primary-dark);
+  --acm-primary-light: #74ad7a;
+  --acm-primary-disabled: rgba(54, 125, 73, 0.62);
+  --acm-bg-page: var(--acm-bg-app);
+  --acm-bg-soft: var(--acm-bg-card-soft);
+  --acm-bg-panel: var(--acm-bg-card);
+  --acm-bg-panel-alt: var(--acm-bg-elevated);
+  --acm-bg-success-soft: var(--acm-success-soft);
+  --acm-bg-success-soft-2: #dff0df;
+  --acm-bg-success-soft-3: #cde7cf;
+  --acm-bg-warning-soft: var(--acm-warning-soft);
+  --acm-bg-warning-soft-2: #ffe8b6;
+  --acm-bg-info-soft: var(--acm-info-soft);
+  --acm-bg-sun-1: var(--acm-harvest-gold);
+  --acm-bg-sun-2: var(--acm-fruit-orange);
+  --acm-warning-deep: var(--acm-warning-text);
+  --acm-warning-muted: #a9771d;
+  --acm-border-success: #badbbd;
+  --acm-border-warning: #eed28f;
+  --acm-border-info: #bdd7df;
+  --acm-text-muted: var(--acm-text-secondary);
+  --acm-text-subtle: var(--acm-text-placeholder);
+  --acm-black: var(--acm-text-primary);
+
+  /* Generic design-system aliases used by Vue components and H5. */
+  --primary: var(--acm-brand-primary);
+  --primary-foreground: var(--acm-text-inverse);
+  --background: var(--acm-bg-app);
+  --foreground: var(--acm-text-primary);
+  --card: var(--acm-bg-card);
+  --card-foreground: var(--acm-text-primary);
+  --muted: var(--acm-bg-card-soft);
+  --muted-foreground: var(--acm-text-secondary);
+  --accent: var(--acm-brand-primary-soft);
+  --accent-foreground: var(--acm-brand-primary-dark);
+  --destructive: var(--acm-danger);
+  --destructive-foreground: var(--acm-text-inverse);
+  --border: var(--acm-border-soft);
+  --input-background: var(--acm-bg-card);
+  --ring: var(--acm-ring-primary);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+}

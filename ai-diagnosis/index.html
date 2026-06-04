@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>农智 - AI病害诊断助手</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10b981',
+                        agri: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            200: '#a7f3d0',
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        }
+                    },
+                    animation: {
+                        'spin-slow': 'spin 8s linear infinite',
+                        'spin-fast': 'spin 3s linear infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px rgba(16, 185, 129, 0.5), 0 0 10px rgba(16, 185, 129, 0.3)' },
+                            '100%': { boxShadow: '0 0 10px rgba(16, 185, 129, 0.8), 0 0 20px rgba(16, 185, 129, 0.5)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for Code Highlighting (VS Code 风格) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/vs2015.min.css">
+    <!-- 浏览器专用构建版本 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-[#0f172a] dark:text-gray-200 h-screen flex overflow-hidden font-sans transition-colors duration-300">
+
+    <!-- 农业主题启动加载动画 -->
+    <div id="startup-loader" class="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-gray-50 via-green-50 to-emerald-50 dark:from-[#0f172a] dark:via-[#0c1929] dark:to-[#0a1628] transition-opacity duration-700">
+        <div class="relative flex flex-col items-center">
+            <!-- 外层虚线轨道 -->
+            <div class="absolute w-32 h-32 border-2 border-dashed border-agri-300/40 dark:border-agri-500/30 rounded-full animate-spin-slow"></div>
+            <!-- 内层实线轨道 -->
+            <div class="absolute w-24 h-24 border border-agri-400/50 dark:border-agri-500/40 rounded-full animate-spin-fast"></div>
+            <!-- 核心发光体 -->
+            <div class="relative w-16 h-16 bg-gradient-to-br from-agri-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-agri-500/30 animate-pulse-fast">
+                <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21c-4.5 0-7-2.5-7-7 0-3.5 2-6 4-8 1.5-1.5 3-2.5 3-4 0 1.5 1.5 2.5 3 4 2 2 4 4.5 4 8 0 4.5-2.5 7-7 7z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-3" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 8c-1 1-2 2.5-2 4" />
+                </svg>
+            </div>
+            <!-- 加载文字 -->
+            <p class="mt-8 text-sm text-agri-600 dark:text-agri-400 font-medium tracking-wider animate-pulse">农智启动中...</p>
+        </div>
+    </div>
+
+    <!-- API Key 配置提示按钮 -->
+    <button id="settingsBtn" class="absolute top-4 right-4 text-gray-400 hover:text-agri-500 text-sm z-10 transition-colors" title="API Key 配置说明">
+        <i class="fas fa-key mr-1"></i> API配置
+    </button>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 flex flex-col relative h-full">
+        <!-- 滚动区域 (首页/聊天记录) -->
+        <div id="chat-scroll-area" class="flex-1 overflow-y-auto w-full scroll-smooth">
+            <div class="max-w-5xl mx-auto w-full px-6 py-12 pb-32">
+
+                <!-- 首页欢迎视图 -->
+                <div id="home-view" class="flex flex-col items-center justify-center pt-[8vh] transition-opacity duration-500">
+                    <!-- Logo 区域美化 -->
+                    <div class="relative mb-6 p-4 bg-gradient-to-br from-agri-100 to-emerald-100 dark:from-agri-900/30 dark:to-emerald-900/30 rounded-2xl shadow-lg shadow-agri-500/10 dark:shadow-agri-500/5 hover:scale-105 transition-transform duration-300">
+                        <div class="w-16 h-16 bg-gradient-to-br from-agri-400 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-agri-500/30">
+                            <svg class="w-9 h-9 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21c-4.5 0-7-2.5-7-7 0-3.5 2-6 4-8 1.5-1.5 3-2.5 3-4 0 1.5 1.5 2.5 3 4 2 2 4 4.5 4 8 0 4.5-2.5 7-7 7z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-3" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 8c-1 1-2 2.5-2 4" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h2 class="text-4xl md:text-5xl font-extrabold mb-3 tracking-tight">
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-agri-400 via-green-500 to-emerald-500">嗨，我是农智</span>
+                    </h2>
+                    <p class="text-gray-400 text-base mb-10">您的AI农业病害诊断助手，请描述您的作物问题</p>
+
+                    <!-- 快捷建议卡片 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+                        <div class="suggestion-card bg-white dark:bg-gray-800 rounded-xl p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 border border-gray-200 dark:border-gray-700 hover:border-agri-400 dark:hover:border-agri-500 shadow-sm hover:shadow-lg hover:shadow-agri-500/10 dark:hover:shadow-agri-500/5 hover:-translate-y-1">
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">我的番茄叶子上有黄斑，是什么病害？</p>
+                            <div class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 flex items-center justify-center text-sm ml-auto">
+                                <i class="fas fa-seedling"></i>
+                            </div>
+                        </div>
+                        <div class="suggestion-card bg-white dark:bg-gray-800 rounded-xl p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 border border-gray-200 dark:border-gray-700 hover:border-agri-400 dark:hover:border-agri-500 shadow-sm hover:shadow-lg hover:shadow-agri-500/10 dark:hover:shadow-agri-500/5 hover:-translate-y-1">
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">水稻叶片发黄枯萎，如何防治？</p>
+                            <div class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm ml-auto">
+                                <i class="fas fa-wheat-awn"></i>
+                            </div>
+                        </div>
+                        <div class="suggestion-card bg-white dark:bg-gray-800 rounded-xl p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 border border-gray-200 dark:border-gray-700 hover:border-agri-400 dark:hover:border-agri-500 shadow-sm hover:shadow-lg hover:shadow-agri-500/10 dark:hover:shadow-agri-500/5 hover:-translate-y-1">
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">苹果树上有虫害，请帮我识别</p>
+                            <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 flex items-center justify-center text-sm ml-auto">
+                                <i class="fas fa-apple-whole"></i>
+                            </div>
+                        </div>
+                        <div class="suggestion-card bg-white dark:bg-gray-800 rounded-xl p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 border border-gray-200 dark:border-gray-700 hover:border-agri-400 dark:hover:border-agri-500 shadow-sm hover:shadow-lg hover:shadow-agri-500/10 dark:hover:shadow-agri-500/5 hover:-translate-y-1">
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">玉米叶片出现条纹状病斑，怎么处理？</p>
+                            <div class="w-8 h-8 rounded-full bg-yellow-100 dark:bg-yellow-900/50 text-yellow-600 dark:text-yellow-400 flex items-center justify-center text-sm ml-auto">
+                                <i class="fas fa-leaf"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 聊天记录视图 (初始隐藏) -->
+                <div id="chat-view" class="hidden flex-col gap-6">
+                    <!-- 消息项示例 (通过JS动态添加) -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部输入区 -->
+        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent dark:from-[#0f172a] dark:via-[#0f172a] pt-10 pb-6 px-4 z-20">
+            <div class="max-w-4xl mx-auto relative">
+
+                <div id="media-preview" class="mb-2 flex flex-wrap justify-start gap-2 empty:hidden"></div>
+
+                <div class="relative flex items-end bg-white dark:bg-[#1e293b] border border-gray-300 dark:border-gray-600 rounded-3xl shadow-md focus-within:ring-2 focus-within:ring-agri-500/50 focus-within:border-agri-500 dark:focus-within:ring-agri-400/30 transition-all px-2 py-2">
+
+                    <div class="shrink-0 mb-1 mr-2 flex items-center">
+                        <button id="theme-toggle-bottom" class="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 transition-colors" title="切换白天/黑夜模式">
+                            <i class="fas fa-moon dark:hidden text-lg"></i>
+                            <i class="fas fa-sun hidden dark:block text-lg"></i>
+                        </button>
+                        <button id="clear-chat-btn" class="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 dark:text-gray-400 transition-colors" title="清除全部对话">
+                            <i class="fas fa-trash text-lg"></i>
+                        </button>
+                    </div>
+
+                    <textarea id="message-input" rows="1" class="flex-1 max-h-48 min-h-[32px] bg-transparent border-none outline-none resize-none py-2 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-[15px] leading-relaxed" placeholder="描述您的作物病害问题，或上传病害图片..."></textarea>
+
+                    <div class="shrink-0 mb-1 ml-2 flex items-center gap-1.5">
+                        <input type="file" id="image-input" accept="image/*" class="hidden">
+                        <button id="upload-btn" class="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 transition-colors" title="上传病害图片">
+                            <i class="fas fa-camera text-lg"></i>
+                        </button>
+                        <button id="send-btn" class="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-agri-500 to-emerald-600 text-white hover:from-agri-600 hover:to-emerald-700 transition-all duration-300 shadow-lg shadow-agri-500/30 hover:shadow-agri-500/50 opacity-50 cursor-not-allowed" disabled title="发送">
+                            <i class="fas fa-arrow-up text-base"></i>
+                        </button>
+                        <button id="stop-btn" class="hidden w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:from-rose-600 hover:to-pink-700 transition-all duration-300 shadow-lg shadow-rose-500/30 hover:shadow-rose-500/50 animate-pulse" title="停止生成">
+                            <i class="fas fa-stop text-base"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="text-center text-xs text-gray-400 dark:text-gray-500 mt-3">
+                    <i class="fas fa-leaf mr-1 text-agri-500"></i>
+                    农智AI提供智能病害诊断，建议仅供参考，请结合实际情况判断
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Custom JavaScript -->
+    <!-- 整合版脚本 (包含 sse.js + image.js + app.js) -->
+    <script src="js/index.js"></script>
+
+    <script>
+        // 启动加载动画 - 页面加载完成后优雅淡出
+        window.addEventListener('load', function() {
+            const loader = document.getElementById('startup-loader');
+            if (loader) {
+                // 延迟一点时间让用户看到动画效果
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    // 等待过渡完成后移除元素
+                    setTimeout(() => {
+                        loader.style.display = 'none';
+                    }, 700);
+                }, 800);
+            }
+        });
+
+        // 设置按钮点击事件 - 显示API Key配置提示
+        document.getElementById('settingsBtn')?.addEventListener('click', function() {
+            const currentKey = localStorage.getItem('BAI_LIAN_API_KEY') || '未配置';
+            const maskedKey = currentKey !== '未配置' && currentKey.length > 8 
+                ? currentKey.substring(0, 4) + '****' + currentKey.substring(currentKey.length - 4)
+                : currentKey;
+            
+            alert(`【API Key 配置说明】
+
+当前API Key: ${maskedKey}
+
+配置方式（任选其一）：
+
+1. URL参数（推荐）：
+   在浏览器地址栏添加参数：
+   ?api_key=您的API密钥
+
+2. 修改代码：
+   编辑 js/index.js 文件，
+   找到 DEFAULT_API_KEY 变量，
+   将其值改为您的API密钥
+
+3. 浏览器控制台：
+   在开发者工具控制台执行：
+   localStorage.setItem('BAI_LIAN_API_KEY', '您的API密钥')
+
+获取API Key：
+   访问阿里云百炼平台：
+   https://bailian.console.aliyun.com/`);
+        });
+    </script>
+</body>
+</html>

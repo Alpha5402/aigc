@@ -1,0 +1,15 @@
+[Unit]
+Description=AgriCloudManager LightRAG Service
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/agricloud/rag
+Environment="PATH=/opt/agricloud/rag/.venv/bin"
+ExecStart=/opt/agricloud/rag/.venv/bin/lightrag-server --host 127.0.0.1 --port 9621 --working-dir /opt/agricloud/rag/rag_storage --input-dir /opt/agricloud/rag/inputs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

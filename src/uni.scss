@@ -1,0 +1,309 @@
+/**
+ * 这里是uni-app内置的常用样式变量
+ *
+ * uni-app 官方扩展插件及插件市场（https://ext.dcloud.net.cn）上很多三方插件均使用了这些样式变量
+ * 如果你是插件开发者，建议你使用scss预处理，并在插件代码中直接使用这些变量（无需 import 这个文件），方便用户通过搭积木的方式开发整体风格一致的App
+ *
+ */
+
+/**
+ * 如果你是App开发者（插件使用者），你可以通过修改这些变量来定制自己的插件主题，实现自定义主题功能
+ *
+ * 如果你的项目同样使用了scss预处理，你也可以直接在你的 scss 代码中使用如下变量，同时无需 import 这个文件
+ */
+
+/* 颜色变量 */
+
+/* 行为相关颜色 */
+$uni-color-primary: #367d49;
+$uni-color-success: #3f8f56;
+$uni-color-warning: #c98f24;
+$uni-color-error: #c75f55;
+
+/* 文字基本颜色 */
+$uni-text-color: #213528; // 基本色
+$uni-text-color-inverse: #fffef7; // 反色
+$uni-text-color-grey: #748074; // 辅助灰色，如加载更多的提示信息
+$uni-text-color-placeholder: #a6afa6;
+$uni-text-color-disable: #c8cec5;
+
+/* 背景颜色 */
+$uni-bg-color: #fffef9;
+$uni-bg-color-grey: #f6f3ea;
+$uni-bg-color-hover: #eef7ec; // 点击状态颜色
+$uni-bg-color-mask: rgba(0, 0, 0, 0.4); // 遮罩颜色
+
+/* 边框颜色 */
+$uni-border-color: #e5dfd0;
+
+/* 尺寸变量 */
+
+/* 文字尺寸 */
+$uni-font-size-sm: 12px;
+$uni-font-size-base: 14px;
+$uni-font-size-lg: 16;
+
+/* 图片尺寸 */
+$uni-img-size-sm: 20px;
+$uni-img-size-base: 26px;
+$uni-img-size-lg: 40px;
+
+/* Border Radius */
+$uni-border-radius-sm: 2px;
+$uni-border-radius-base: 3px;
+$uni-border-radius-lg: 6px;
+$uni-border-radius-circle: 50%;
+
+/* 水平间距 */
+$uni-spacing-row-sm: 5px;
+$uni-spacing-row-base: 10px;
+$uni-spacing-row-lg: 15px;
+
+/* 垂直间距 */
+$uni-spacing-col-sm: 4px;
+$uni-spacing-col-base: 8px;
+$uni-spacing-col-lg: 12px;
+
+/* 透明度 */
+$uni-opacity-disabled: 0.3; // 组件禁用态的透明度
+
+/* 文章场景相关 */
+$uni-color-title: #213528; // 文章标题颜色
+$uni-font-size-title: 20px;
+$uni-color-subtitle: #4d5f52; // 二级标题颜色
+$uni-font-size-subtitle: 18px;
+$uni-color-paragraph: #4d5f52; // 文章段落颜色
+$uni-font-size-paragraph: 15px;
+
+/*
+ * React -> UniApp global design tokens
+ * Source: src/styles/index.css, src/styles/tailwind.css, src/styles/theme.css
+ * tailwind.config.js not found in workspace root, so no theme.extend tokens to merge.
+ */
+
+/* Typography tokens */
+$acm-font-size-base: 16px;
+$acm-font-weight-medium: 500;
+$acm-font-weight-normal: 400;
+
+/* Radius tokens (converted from Tailwind rem to rpx) */
+$acm-radius-sm: 8rpx;
+$acm-radius-md: 12rpx;
+$acm-radius-lg: 20rpx;
+$acm-radius-xl: 28rpx;
+
+/* Visual tokens aligned with React pages */
+$primary: #367d49;
+$primary-dark: #25543a;
+$primary-light: #74ad7a;
+$text-primary: #213528;
+$text-secondary: #748074;
+$text-muted: #8a9389;
+$text-subtle: #a6afa6;
+$success: #3f8f56;
+$warning: #c98f24;
+$warning-deep: #8a5f14;
+$warning-muted: #a9771d;
+$danger: #c75f55;
+$info: #5b91a8;
+
+$bg-page: #f5f5f5;
+$bg-soft: #fafafa;
+$bg-panel: #f8f8f8;
+$bg-panel-alt: #f8f9fa;
+$bg-success-soft: #f0f9f0;
+$bg-success-soft-2: #e8f5e9;
+$bg-success-soft-3: #c8e6c9;
+$bg-warning-soft: #fff7e6;
+$bg-warning-soft-2: #ffe7ba;
+$bg-info-soft: #e6f7ff;
+
+$border-soft: #e8e8e8;
+$border-success: #b7eb8f;
+$border-warning: #ffd591;
+$border-info: #91d5ff;
+$line-neutral: #f0f0f0;
+$line-neutral-2: #e6e6e6;
+$chart-track: #edf0ed;
+$chart-compare: #d9d9d9;
+
+$white: #ffffff;
+$white-95: rgba(255, 255, 255, 0.95);
+$white-90: rgba(255, 255, 255, 0.9);
+$white-85: rgba(255, 255, 255, 0.85);
+$white-82: rgba(255, 255, 255, 0.82);
+$white-80: rgba(255, 255, 255, 0.8);
+$white-75: rgba(255, 255, 255, 0.75);
+$white-60: rgba(255, 255, 255, 0.6);
+$white-20: rgba(255, 255, 255, 0.2);
+
+$ring-primary-40: rgba(82, 163, 85, 0.4);
+$ring-primary-35: rgba(82, 163, 85, 0.35);
+$primary-disabled: rgba(82, 163, 85, 0.72);
+
+$shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+$shadow-md: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+
+/*
+ * CSS custom properties for utility class mapping.
+ * Keep both `:root` and `page` so H5 and mini-program sides can share the same tokens.
+ */
+:root,
+page {
+	--font-size: #{$acm-font-size-base};
+	--font-weight-medium: #{$acm-font-weight-medium};
+	--font-weight-normal: #{$acm-font-weight-normal};
+
+	/* Extracted base semantic tokens from theme.css */
+	--background: #ffffff;
+	--foreground: #1f1f1f;
+	--card: #ffffff;
+	--card-foreground: #1f1f1f;
+	--popover: #ffffff;
+	--popover-foreground: #1f1f1f;
+	--primary: #030213;
+	--primary-foreground: #ffffff;
+	--secondary: #f2f2f4;
+	--secondary-foreground: #030213;
+	--muted: #ececf0;
+	--muted-foreground: #717182;
+	--accent: #e9ebef;
+	--accent-foreground: #030213;
+	--destructive: #d4183d;
+	--destructive-foreground: #ffffff;
+	--border: rgba(0, 0, 0, 0.1);
+	--input: transparent;
+	--input-background: #f3f3f5;
+	--switch-background: #cbced4;
+	--ring: rgba(0, 0, 0, 0.35);
+	--radius: #{$acm-radius-lg};
+	--sidebar: #f8f8f8;
+	--sidebar-foreground: #1f1f1f;
+	--sidebar-primary: #030213;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #f5f5f5;
+	--sidebar-accent-foreground: #212121;
+	--sidebar-border: #e5e5e5;
+	--sidebar-ring: rgba(0, 0, 0, 0.35);
+
+	/* Extracted @theme inline aliases */
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-input-background: var(--input-background);
+	--color-switch-background: var(--switch-background);
+	--color-ring: var(--ring);
+	--radius-sm: #{$acm-radius-sm};
+	--radius-md: #{$acm-radius-md};
+	--radius-lg: #{$acm-radius-lg};
+	--radius-xl: #{$acm-radius-xl};
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+
+	/* Business palette extracted from React page classes */
+	--acm-white: #{$white};
+	--acm-black: #000000;
+	--acm-gray-900: #111827;
+	--acm-gray-800: #1f2937;
+	--acm-gray-600: #4b5563;
+	--acm-gray-400: #9ca3af;
+	--acm-gray-200: #e5e7eb;
+	--acm-gray-100: #f3f4f6;
+	--acm-gray-50: #f9fafb;
+	--acm-green-50: #f0fdf4;
+	--acm-red-500: #ef4444;
+
+	--acm-primary: #{$primary};
+	--acm-primary-dark: #{$primary-dark};
+	--acm-primary-light: #{$primary-light};
+	--acm-text-primary: #{$text-primary};
+	--acm-text-secondary: #{$text-secondary};
+	--acm-text-muted: #{$text-muted};
+	--acm-text-subtle: #{$text-subtle};
+	--acm-success: #{$success};
+	--acm-warning: #{$warning};
+	--acm-warning-deep: #{$warning-deep};
+	--acm-warning-muted: #{$warning-muted};
+	--acm-danger: #{$danger};
+	--acm-info: #{$info};
+
+	--acm-bg-page: #{$bg-page};
+	--acm-bg-soft: #{$bg-soft};
+	--acm-bg-panel: #{$bg-panel};
+	--acm-bg-panel-alt: #{$bg-panel-alt};
+	--acm-bg-success-soft: #{$bg-success-soft};
+	--acm-bg-success-soft-2: #{$bg-success-soft-2};
+	--acm-bg-success-soft-3: #{$bg-success-soft-3};
+	--acm-bg-warning-soft: #{$bg-warning-soft};
+	--acm-bg-warning-soft-2: #{$bg-warning-soft-2};
+	--acm-bg-info-soft: #{$bg-info-soft};
+	--acm-bg-sun-1: #ffd700;
+	--acm-bg-sun-2: #ffa500;
+
+	--acm-border-soft: #{$border-soft};
+	--acm-border-success: #{$border-success};
+	--acm-border-warning: #{$border-warning};
+	--acm-border-info: #{$border-info};
+	--acm-line-neutral: #{$line-neutral};
+	--acm-line-neutral-2: #{$line-neutral-2};
+	--acm-chart-track: #{$chart-track};
+	--acm-chart-compare: #{$chart-compare};
+	--acm-white-95: #{$white-95};
+	--acm-white-90: #{$white-90};
+	--acm-white-85: #{$white-85};
+	--acm-white-82: #{$white-82};
+	--acm-white-80: #{$white-80};
+	--acm-white-75: #{$white-75};
+	--acm-white-60: #{$white-60};
+	--acm-white-20: #{$white-20};
+	--acm-primary-disabled: #{$primary-disabled};
+	--acm-ring-primary-40: #{$ring-primary-40};
+	--acm-ring-primary-35: #{$ring-primary-35};
+	--acm-shadow-sm: #{$shadow-sm};
+	--acm-shadow-md: #{$shadow-md};
+}
+
+page.dark {
+	--background: #1a1a1a;
+	--foreground: #f5f5f5;
+	--card: #202020;
+	--card-foreground: #f5f5f5;
+	--popover: #202020;
+	--popover-foreground: #f5f5f5;
+	--primary: #f5f5f5;
+	--primary-foreground: #222222;
+	--secondary: #2a2a2a;
+	--secondary-foreground: #f5f5f5;
+	--muted: #2a2a2a;
+	--muted-foreground: #b5b5b5;
+	--accent: #2a2a2a;
+	--accent-foreground: #f5f5f5;
+	--destructive: #d4183d;
+	--destructive-foreground: #ffe6ec;
+	--border: #2f2f2f;
+	--input: #2f2f2f;
+	--ring: rgba(255, 255, 255, 0.28);
+}
+
+@import "@/styles/design-tokens.scss";

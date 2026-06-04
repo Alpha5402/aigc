@@ -1,0 +1,15 @@
+@mixin acm-card {
+  border: 2rpx solid var(--acm-border-soft);
+  border-radius: var(--acm-radius-card);
+  background: var(--acm-bg-card);
+  box-shadow: var(--acm-shadow-card);
+}
+
+@mixin acm-pressable {
+  transition: transform var(--acm-motion-fast) var(--acm-motion-ease), opacity var(--acm-motion-fast) var(--acm-motion-ease);
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.92;
+  }
+}

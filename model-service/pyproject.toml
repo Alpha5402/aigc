@@ -1,0 +1,40 @@
+[project]
+name = "agricloud-forecast"
+version = "0.1.0"
+description = "Independent Python GPU forecasting service for AgriCloudManager (market-price-forecast spec)"
+requires-python = ">=3.11"
+authors = [{ name = "AgriCloud Forecast Team", email = "ops@ysngj.cn" }]
+readme = "README.md"
+
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "python-dotenv>=1.0",
+  # 经典统计与 Prophet
+  "statsmodels>=0.14",
+  "prophet>=1.1.6 ; python_version < '3.13'",
+  # 深度学习（CPU 也能跑通；GPU 自动启用）
+  "torch>=2.4",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.23",
+  "hypothesis>=6",
+  "httpx>=0.27",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

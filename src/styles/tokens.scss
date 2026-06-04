@@ -1,0 +1,71 @@
+@import "./design-tokens.scss";
+
+$acm-font-page-title: 44rpx;
+$acm-font-page-subtitle: 28rpx;
+$acm-font-section-title: 34rpx;
+$acm-font-card-title: 32rpx;
+$acm-font-body: 28rpx;
+$acm-font-caption: 24rpx;
+$acm-font-chip: 22rpx;
+$acm-font-button: 28rpx;
+$acm-font-form: 30rpx;
+
+$acm-space-page-x: 28rpx;
+$acm-space-card: 28rpx;
+$acm-space-card-gap: 20rpx;
+$acm-space-section: 32rpx;
+$acm-space-form-gap: 24rpx;
+$acm-space-bottom-action: 28rpx;
+$acm-space-bottom-nav: 156rpx;
+$acm-space-hero-x: 32rpx;
+$acm-space-hero-top: 36rpx;
+
+$acm-radius-chip: 999rpx;
+$acm-radius-input: 20rpx;
+$acm-radius-card: 24rpx;
+$acm-radius-card-lg: 32rpx;
+$acm-radius-hero: 40rpx;
+$acm-radius-sheet: 36rpx;
+$acm-radius-pill: 999rpx;
+
+$acm-motion-fast: 160ms;
+$acm-motion-normal: 220ms;
+$acm-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+:root,
+page {
+  --acm-font-page-title: #{$acm-font-page-title};
+  --acm-font-page-subtitle: #{$acm-font-page-subtitle};
+  --acm-font-section-title: #{$acm-font-section-title};
+  --acm-font-card-title: #{$acm-font-card-title};
+  --acm-font-body: #{$acm-font-body};
+  --acm-font-caption: #{$acm-font-caption};
+  --acm-font-chip: #{$acm-font-chip};
+  --acm-font-button: #{$acm-font-button};
+  --acm-font-form: #{$acm-font-form};
+
+  --acm-space-page-x: #{$acm-space-page-x};
+  --acm-space-card: #{$acm-space-card};
+  --acm-space-card-gap: #{$acm-space-card-gap};
+  --acm-space-section: #{$acm-space-section};
+  --acm-space-form-gap: #{$acm-space-form-gap};
+  --acm-space-bottom-action: #{$acm-space-bottom-action};
+  --acm-space-bottom-nav: #{$acm-space-bottom-nav};
+  --acm-space-hero-x: #{$acm-space-hero-x};
+  --acm-space-hero-top: #{$acm-space-hero-top};
+
+  --acm-radius-chip: #{$acm-radius-chip};
+  --acm-radius-input: #{$acm-radius-input};
+  --acm-radius-card: #{$acm-radius-card};
+  --acm-radius-card-lg: #{$acm-radius-card-lg};
+  --acm-radius-hero: #{$acm-radius-hero};
+  --acm-radius-sheet: #{$acm-radius-sheet};
+  --acm-radius-pill: #{$acm-radius-pill};
+
+  --acm-shadow-elevated: 0 20rpx 56rpx rgba(64, 84, 62, 0.14);
+  --acm-shadow-nav: 0 -10rpx 28rpx rgba(64, 84, 62, 0.08);
+  --acm-shadow-float: 0 16rpx 38rpx rgba(54, 125, 73, 0.22);
+  --acm-motion-fast: #{$acm-motion-fast};
+  --acm-motion-normal: #{$acm-motion-normal};
+  --acm-motion-ease: #{$acm-motion-ease};
+}
