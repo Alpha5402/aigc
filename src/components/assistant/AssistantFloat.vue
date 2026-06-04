@@ -1,7 +1,7 @@
 <template>
   <view class="assistant-float">
     <button v-if="!open" class="float-btn" @click="open = true">
-      <SvgIcon name="mic" :size="18" color="var(--acm-brand-primary-dark)" :stroke-width="2.35" />
+      <SvgIcon name="mic" :size="25" color="var(--acm-brand-primary-dark)" :stroke-width="2.35" />
     </button>
     <view v-if="open" class="assistant-mask" @click="open = false"></view>
     <view v-if="open" class="assistant-sheet">
@@ -32,21 +32,22 @@ const open = ref(false)
 
 .float-btn {
   position: fixed;
-  right: 22rpx;
-  bottom: calc(214rpx + env(safe-area-inset-bottom));
-  width: 56rpx;
-  height: 56rpx;
+  right: 28rpx;
+  bottom: calc(218rpx + env(safe-area-inset-bottom));
+  width: 112rpx;
+  height: 112rpx;
+  min-width: 112rpx;
   padding: 0;
-  border: 1rpx solid rgba(200, 222, 197, 0.72);
+  border: 1rpx solid rgba(200, 222, 197, 0.86);
   border-radius: 999rpx;
-  background: rgba(255, 254, 249, 0.78);
+  background: rgba(255, 254, 249, 0.9);
   color: var(--acm-brand-primary-dark);
-  box-shadow: 0 5rpx 14rpx rgba(64, 84, 62, 0.07);
+  box-shadow: 0 12rpx 28rpx rgba(37, 84, 58, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: auto;
-  opacity: 0.84;
+  opacity: 0.96;
 }
 
 .assistant-mask {

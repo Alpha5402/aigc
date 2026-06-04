@@ -79,7 +79,7 @@ const startVoice = async () => {
 .assistant-panel {
   width: 100%;
   max-height: 74vh;
-  padding: 28rpx;
+  padding: 32rpx;
   border-radius: var(--acm-radius-sheet) var(--acm-radius-sheet) 28rpx 28rpx;
   background: var(--acm-bg-elevated);
   border: 2rpx solid var(--acm-border-soft);
@@ -132,33 +132,34 @@ const startVoice = async () => {
 
 .quick-btn {
   flex: 0 0 auto;
-  height: 52rpx;
-  padding: 0 18rpx;
+  height: 60rpx;
+  padding: 0 22rpx;
   border: 0;
   border-radius: 999rpx;
   background: #ecfdf5;
   color: var(--acm-brand-primary);
-  font-size: 22rpx;
+  font-size: 24rpx;
 }
 
 .input-row {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  padding-top: 12rpx;
+  gap: 14rpx;
+  padding-top: 16rpx;
   border-top: 2rpx solid var(--acm-border-soft);
 }
 
 .voice-btn,
 .send-btn {
-  height: 64rpx;
+  height: 76rpx;
   border: 0;
   border-radius: 999rpx;
-  font-size: 23rpx;
+  font-size: 25rpx;
+  font-weight: 800;
 }
 
 .voice-btn {
-  width: 82rpx;
+  width: 96rpx;
   background: var(--acm-brand-primary-soft);
   color: var(--acm-brand-primary);
 }
@@ -170,16 +171,16 @@ const startVoice = async () => {
 
 .assistant-input {
   flex: 1;
-  height: 64rpx;
-  padding: 0 20rpx;
+  height: 76rpx;
+  padding: 0 24rpx;
   border-radius: 999rpx;
   background: var(--acm-bg-card-soft);
-  font-size: 24rpx;
+  font-size: 25rpx;
   box-sizing: border-box;
 }
 
 .send-btn {
-  width: 86rpx;
+  width: 98rpx;
   background: var(--acm-brand-primary);
   color: var(--acm-text-inverse);
 }

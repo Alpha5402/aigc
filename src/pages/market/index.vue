@@ -11,35 +11,6 @@
         </button>
       </view>
 
-      <view v-if="priceAlerts.length" class="alerts">
-        <view
-          v-for="(alert, index) in priceAlerts"
-          :key="index"
-          :class="['alert-card', alert.urgency === 'high' ? 'alert-card-high' : 'alert-card-normal']"
-        >
-          <view class="alert-row">
-            <view :class="['alert-icon', alert.urgency === 'high' ? 'alert-icon-high' : 'alert-icon-normal']">
-                <SvgIcon
-                  :name="alert.urgency === 'high' ? 'triangle-alert' : 'target'"
-                  :size="18"
-                  color="var(--acm-white)"
-                />
-            </view>
-            <view class="alert-content">
-              <view class="alert-title-row">
-                <text :class="['alert-title', alert.urgency === 'high' ? 'alert-title-high' : 'alert-title-normal']">{{ alert.title }}</text>
-                <text class="alert-tag">{{ alert.crop }}</text>
-              </view>
-              <text :class="['alert-message', alert.urgency === 'high' ? 'alert-message-high' : 'alert-message-normal']">{{ alert.message }}</text>
-                <view :class="['alert-action', alert.urgency === 'high' ? 'alert-title-high' : 'alert-title-normal']">
-                  <SvgIcon name="chevron-right" :size="14" :color="alert.urgency === 'high' ? 'var(--acm-warning-deep)' : 'var(--acm-success)'" />
-                  <text>{{ alert.action }}</text>
-                </view>
-            </view>
-          </view>
-        </view>
-      </view>
-
       <view v-if="hasNoData" class="content">
         <EmptyState
           title="暂无行情数据"
@@ -145,10 +116,13 @@
           </view>
         </view>
 
-        <view class="card">
-          <view class="card-head">
-            <text class="card-title">价格走势</text>
-            <button class="switch-btn" @click="toggleComparison">{{ showComparison ? '看预测' : '看对比' }}</button>
+        <view class="card trend-section">
+          <view class="trend-section__head">
+            <view class="trend-section__title-wrap">
+              <text class="card-title trend-section__title">价格走势</text>
+              <text class="trend-section__desc">查看近期价格变化</text>
+            </view>
+            <button class="trend-compare-btn" @click="toggleComparison">{{ showComparison ? '看预测' : '看对比' }}</button>
           </view>
 
           <view class="price-chart-container">
@@ -298,7 +272,6 @@ import {
   type MarketRagReportResult,
   type MarketCropItem,
   type NearbyMarketItem,
-  type PriceAlertItem,
   type RecommendationItem,
 } from '../../api/agri'
 
@@ -358,7 +331,6 @@ const emptyCrop: CropItem = {
 
 const crops = ref<CropItem[]>([])
 const nearbyMarkets = ref<NearbyMarketItem[]>([])
-const priceAlerts = ref<PriceAlertItem[]>([])
 const personalizedRecommendations = ref<RecommendationItem[]>([])
 
 const selectedCrop = ref<CropItem>(emptyCrop)
@@ -381,7 +353,6 @@ const loadData = async () => {
     console.log('[market] overview response =', data)
     crops.value = data.crops || []
     nearbyMarkets.value = data.nearbyMarkets || []
-    priceAlerts.value = data.priceAlerts || []
     personalizedRecommendations.value = data.recommendations || []
     selectedCrop.value = crops.value[0] || emptyCrop
     overviewLoaded = true
@@ -640,106 +611,6 @@ const openRecommendation = (recommendation: RecommendationItem) => {
   flex: 1;
 }
 
-.alerts {
-  padding: 24rpx 24rpx 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.alert-card {
-  border-radius: 32rpx;
-  padding: 28rpx;
-  border: 2rpx solid transparent;
-  box-shadow: var(--acm-shadow-sm);
-  overflow: hidden;
-}
-
-.alert-card-high {
-  background: linear-gradient(135deg, var(--acm-bg-warning-soft), var(--acm-bg-warning-soft-2));
-  border-color: var(--acm-border-warning);
-}
-
-.alert-card-normal {
-  background: linear-gradient(135deg, var(--acm-bg-success-soft), var(--acm-bg-success-soft-2));
-  border-color: var(--acm-border-success);
-}
-
-.alert-row {
-  display: flex;
-  gap: 24rpx;
-}
-
-.alert-icon {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.alert-icon-high {
-  background: var(--acm-warning);
-}
-
-.alert-icon-normal {
-  background: var(--acm-primary);
-}
-
-.alert-content {
-  flex: 1;
-}
-
-.alert-title-row {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin-bottom: 8rpx;
-}
-
-.alert-title {
-  font-size: 28rpx;
-}
-
-.alert-title-high {
-  color: var(--acm-warning-deep);
-}
-
-.alert-title-normal {
-  color: var(--acm-success);
-}
-
-.alert-tag {
-  background: var(--acm-brand-primary);
-  color: var(--acm-text-inverse);
-  border-radius: 8rpx;
-  font-size: 20rpx;
-  padding: 4rpx 16rpx;
-}
-
-.alert-message {
-  display: block;
-  font-size: 24rpx;
-  margin-bottom: 8rpx;
-  line-height: 1.5;
-}
-
-.alert-message-high {
-  color: var(--acm-warning-muted);
-}
-
-.alert-message-normal {
-  color: var(--acm-primary);
-}
-
-.alert-action {
-  display: flex;
-  align-items: center;
-  gap: 4rpx;
-  font-size: 24rpx;
-}
-
 .tab-wrap {
   background: var(--acm-bg-card);
   margin: 16rpx 0;
@@ -926,8 +797,15 @@ const openRecommendation = (recommendation: RecommendationItem) => {
   border-radius: 9999rpx;
   background: var(--acm-bg-success-soft);
   color: var(--acm-primary);
-  font-size: 24rpx;
-  padding: 16rpx 32rpx;
+  min-height: 58rpx;
+  font-size: 25rpx;
+  font-weight: 800;
+  padding: 0 34rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 16rpx rgba(64, 84, 62, 0.07);
+  box-sizing: border-box;
 }
 
 .voice-btn-playing {
@@ -1007,13 +885,58 @@ const openRecommendation = (recommendation: RecommendationItem) => {
   box-sizing: border-box;
 }
 
-.switch-btn {
-  border: 0;
-  border-radius: 16rpx;
-  background: var(--acm-bg-panel);
-  color: var(--acm-text-secondary);
+.trend-section {
+  position: relative;
+}
+
+.trend-section__head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.trend-section__title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.trend-section__title,
+.trend-section__desc {
+  display: block;
+}
+
+.trend-section__desc {
+  margin-top: 8rpx;
+  color: var(--acm-text-muted);
+  font-size: 23rpx;
+  line-height: 1.35;
+}
+
+.trend-compare-btn {
+  flex: 0 0 auto;
+  margin: 0 8rpx 0 0;
+  padding: 0 22rpx;
+  min-height: 56rpx;
+  border: 1rpx solid rgba(54, 125, 73, 0.18);
+  border-radius: 999rpx;
+  background: rgba(255, 254, 249, 0.92);
+  color: var(--acm-brand-primary);
   font-size: 24rpx;
-  padding: 12rpx 24rpx;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  box-shadow: 0 6rpx 16rpx rgba(64, 84, 62, 0.07);
+}
+
+.trend-compare-btn::after {
+  border: 0;
 }
 
 .price-chart-container {
@@ -1419,7 +1342,6 @@ const openRecommendation = (recommendation: RecommendationItem) => {
 }
 
 .tab-wrap,
-.alerts,
 .card {
   border-width: 1rpx;
   border-color: rgba(207, 222, 202, 0.86);
