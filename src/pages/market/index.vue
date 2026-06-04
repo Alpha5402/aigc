@@ -72,10 +72,10 @@
           <view class="card-head">
             <text class="card-title">{{ selectedCrop.name }} · 今日价格</text>
             <view class="card-actions">
-              <button :class="['voice-btn', isPlaying ? 'voice-btn-playing' : '']" @click="handleVoicePlay">
+              <button :class="['price-action-btn', 'voice-btn', isPlaying ? 'voice-btn-playing' : '']" @click="handleVoicePlay">
                 {{ isPlaying ? '播放中...' : '语音播报' }}
               </button>
-              <button class="rag-btn" :disabled="ragLoading" @click="handleGenerateMarketReport">
+              <button class="price-action-btn rag-btn" :disabled="ragLoading" @click="handleGenerateMarketReport">
                 {{ ragLoading ? '生成中...' : '行情报告' }}
               </button>
             </view>
@@ -777,6 +777,7 @@ const openRecommendation = (recommendation: RecommendationItem) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16rpx;
   margin-bottom: 32rpx;
 }
 
@@ -786,26 +787,37 @@ const openRecommendation = (recommendation: RecommendationItem) => {
 }
 
 .card-actions {
-  display: flex;
+  flex: 0 0 auto;
+  min-width: 248rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
   gap: 12rpx;
-  flex-shrink: 0;
 }
 
-.voice-btn {
-  border: 0;
+.price-action-btn {
+  width: 100%;
+  min-height: 64rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid rgba(54, 125, 73, 0.16);
   border-radius: 9999rpx;
-  background: var(--acm-bg-success-soft);
-  color: var(--acm-primary);
-  min-height: 58rpx;
-  font-size: 25rpx;
+  font-size: 24rpx;
   font-weight: 800;
-  padding: 0 34rpx;
+  line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6rpx 16rpx rgba(64, 84, 62, 0.07);
   box-sizing: border-box;
+}
+
+.price-action-btn::after {
+  border: 0;
+}
+
+.voice-btn {
+  background: var(--acm-bg-success-soft);
+  color: var(--acm-primary);
+  box-shadow: 0 6rpx 16rpx rgba(64, 84, 62, 0.07);
 }
 
 .voice-btn-playing {
@@ -814,12 +826,8 @@ const openRecommendation = (recommendation: RecommendationItem) => {
 }
 
 .rag-btn {
-  border: 0;
-  border-radius: 9999rpx;
   background: var(--acm-brand-primary);
   color: var(--acm-text-inverse);
-  font-size: 24rpx;
-  padding: 16rpx 28rpx;
 }
 
 .rag-btn[disabled] {
@@ -1256,6 +1264,12 @@ const openRecommendation = (recommendation: RecommendationItem) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16rpx;
+}
+
+.rec-footer > view {
+  min-width: 0;
+  flex: 1;
 }
 
 .rec-profit-label {
@@ -1272,12 +1286,27 @@ const openRecommendation = (recommendation: RecommendationItem) => {
 }
 
 .detail-btn {
+  flex: 0 0 auto;
+  margin-left: auto;
+  margin-right: 4rpx;
+  transform: translateX(8rpx);
+  min-height: 58rpx;
   border: 0;
-  border-radius: 16rpx;
+  border-radius: 999rpx;
   background: var(--acm-brand-primary);
   color: var(--acm-text-inverse);
-  font-size: 28rpx;
-  padding: 20rpx 40rpx;
+  font-size: 25rpx;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 26rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.detail-btn::after {
+  border: 0;
 }
 
 .bottom-text {

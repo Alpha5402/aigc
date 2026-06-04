@@ -28,7 +28,7 @@
             <view class="product-panel__head-main">
               <text class="card-title">待推广产品</text>
             </view>
-            <button class="text-btn product-panel__complete" @click="goAddCrop">去完善</button>
+            <button class="text-btn product-panel__complete" @click="goCompletePromotionProduct">去完善</button>
           </view>
 
           <EmptyState
@@ -479,6 +479,45 @@ const copyAllMaterials = () => {
 
 const goAddCrop = () => {
   uni.navigateTo({ url: '/pages/add-crop/index' })
+}
+
+const buildEditCropUrl = (product: MarketingProduct) => {
+  const productRecord = product as MarketingProduct & Record<string, any>
+  const cropId = productRecord.cropId || productRecord.crop_id || productRecord.id
+  const numericId = Number(cropId)
+  if (!Number.isFinite(numericId) || numericId <= 0) return ''
+
+  const parts = [
+    'editMode=true',
+    `id=${numericId}`,
+    `name=${encodeURIComponent(String(product.name || ''))}`,
+    `area=${encodeURIComponent(String(product.area || ''))}`,
+    `plantDate=${encodeURIComponent(String(product.plantDate || ''))}`,
+    `stage=${encodeURIComponent(String(product.stage || ''))}`,
+  ]
+  if (product.location) parts.push(`location=${encodeURIComponent(String(product.location))}`)
+  if (product.expectedYield) parts.push(`expectedYield=${product.expectedYield}`)
+  if (product.yieldUnit) parts.push(`yieldUnit=${encodeURIComponent(product.yieldUnit)}`)
+  if (product.expectedMarketTime) {
+    parts.push(`expectedMarketTime=${encodeURIComponent(product.expectedMarketTime)}`)
+  }
+
+  return `/pages/add-crop/index?${parts.join('&')}`
+}
+
+const goCompletePromotionProduct = () => {
+  const product = selectedProduct.value
+  if (!product) {
+    uni.showToast({ title: '请先选择待推广产品', icon: 'none' })
+    return
+  }
+
+  const url = buildEditCropUrl(product)
+  if (!url) {
+    uni.showToast({ title: '当前产品缺少作物编号', icon: 'none' })
+    return
+  }
+  uni.navigateTo({ url })
 }
 
 const showNotice = () => {

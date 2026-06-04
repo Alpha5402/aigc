@@ -91,7 +91,13 @@ const startVoice = async () => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: 18rpx;
   margin-bottom: 12rpx;
+}
+
+.panel-head > view {
+  min-width: 0;
+  flex: 1;
 }
 
 .panel-title,
@@ -112,6 +118,12 @@ const startVoice = async () => {
 }
 
 .close-btn {
+  flex: 0 0 auto;
+  margin-left: auto;
+  margin-right: 4rpx;
+  transform: translateX(8rpx);
+  position: relative;
+  z-index: 3;
   width: 56rpx;
   height: 56rpx;
   border: 0;

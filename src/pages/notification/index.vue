@@ -8,7 +8,7 @@
         @back="goBack"
       >
         <template #action>
-          <button class="read-all-btn" :disabled="!hasUnread || loading" @click="markAllAsRead">
+          <button class="notice-action-btn read-all-btn" :disabled="!hasUnread || loading" @click="markAllAsRead">
             <text :class="['read-all-text', hasUnread && !loading ? '' : 'is-disabled']">全部已读</text>
           </button>
         </template>
@@ -28,12 +28,12 @@
         </view>
       </view>
 
-      <scroll-view class="tabs-scroll" scroll-x>
-        <view class="tabs">
+      <scroll-view class="tabs-scroll notice-filter-scroll" scroll-x>
+        <view class="tabs notice-filter">
           <view
             v-for="tab in tabs"
             :key="tab.key"
-            :class="['tab-item', activeTab === tab.key ? 'tab-item-active' : '']"
+            :class="['tab-item', 'notice-filter__item', activeTab === tab.key ? 'tab-item-active notice-filter__item--active' : '']"
             @click="switchTab(tab.key)"
           >
             <text>{{ tab.label }}</text>
@@ -263,14 +263,13 @@ const goBack = () => {
 }
 
 .read-all-btn {
-  border: 0;
-  background: transparent;
-  padding: 12rpx 0 12rpx 20rpx;
+  min-height: 56rpx;
+  padding: 0 20rpx;
 }
 
 .read-all-text {
-  font-size: 26rpx;
-  color: var(--acm-brand-primary);
+  font-size: 24rpx;
+  color: inherit;
 }
 
 .read-all-text.is-disabled {
@@ -329,27 +328,34 @@ const goBack = () => {
 
 .tabs {
   display: inline-flex;
-  gap: 16rpx;
-  padding: 0 var(--acm-space-page-x) 24rpx;
+  min-width: calc(100% - var(--acm-space-page-x) * 2);
+  padding: 8rpx;
+  margin: 0 var(--acm-space-page-x) 24rpx;
+  box-sizing: border-box;
 }
 
 .tab-item {
-  min-height: 60rpx;
-  padding: 0 24rpx;
-  border-radius: var(--acm-radius-pill);
-  background: var(--acm-bg-card);
-  border: 2rpx solid var(--acm-border-soft);
+  flex: 1;
+  min-width: 136rpx;
+  min-height: 56rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  border: 0;
+  background: transparent;
   color: var(--acm-text-secondary);
   display: inline-flex;
   align-items: center;
-  gap: 10rpx;
-  font-size: 26rpx;
+  justify-content: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  box-sizing: border-box;
 }
 
 .tab-item-active {
-  background: var(--acm-brand-primary);
-  border-color: var(--acm-brand-primary);
-  color: var(--acm-text-inverse);
+  background: #ffffff;
+  color: var(--acm-brand-primary);
+  box-shadow: 0 6rpx 16rpx rgba(31, 42, 35, 0.06);
 }
 
 .tab-count {
@@ -366,8 +372,51 @@ const goBack = () => {
 }
 
 .tab-item-active .tab-count {
-  background: var(--acm-bg-card);
+  background: var(--acm-brand-primary-soft);
   color: var(--acm-brand-primary);
+}
+
+.notice-filter {
+  border-radius: 999rpx;
+  background: rgba(54, 125, 73, 0.08);
+  gap: 8rpx;
+}
+
+.notice-filter__item::after,
+.notice-action-btn::after {
+  border: 0;
+}
+
+.notice-action-btn {
+  border: 1rpx solid rgba(54, 125, 73, 0.16);
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: var(--acm-brand-primary);
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.notice-action-btn[disabled] {
+  opacity: 0.56;
+}
+
+.notice-action-btn--danger {
+  border-color: rgba(185, 85, 79, 0.18);
+  background: rgba(255, 244, 242, 0.96);
+  color: #b9554f;
+}
+
+.notice-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
 }
 
 .list-scroll {
@@ -494,16 +543,6 @@ const goBack = () => {
   background: rgba(255, 254, 249, 0.78);
   border: 1rpx solid rgba(200, 222, 197, 0.68);
   box-shadow: none;
-}
-
-.tab-item {
-  border: 1rpx solid rgba(200, 222, 197, 0.62);
-  background: rgba(255, 254, 249, 0.76);
-}
-
-.tab-item-active {
-  background: var(--acm-brand-primary-soft);
-  color: var(--acm-brand-primary-dark);
 }
 
 .notification-card {

@@ -57,8 +57,7 @@
         </view>
 
         <view class="product-actions">
-          <button class="product-action" @click="goAddCrop">完善信息</button>
-          <button class="product-action" @click="showUnavailable('编辑')">编辑</button>
+          <button class="product-action" @click="goCompleteProduct(product)">完善信息</button>
           <button class="product-action danger" @click="showUnavailable('删除')">删除</button>
         </view>
       </AppCard>
@@ -114,6 +113,39 @@ onShow(() => {
 
 const goAddCrop = () => {
   uni.navigateTo({ url: '/pages/add-crop/index' })
+}
+
+const buildEditCropUrl = (product: ProductDisplayItem) => {
+  const cropId = product.cropId || product.crop_id || product.id
+  if (!cropId) return ''
+
+  const parts = [
+    'editMode=true',
+    `id=${cropId}`,
+    `name=${encodeURIComponent(String(product.name || ''))}`,
+    `area=${encodeURIComponent(String(product.area || ''))}`,
+    `plantDate=${encodeURIComponent(String(product.plantDate || ''))}`,
+    `stage=${encodeURIComponent(String(product.stage || ''))}`,
+  ]
+  if (product.location) parts.push(`location=${encodeURIComponent(String(product.location))}`)
+  const expectedYield = product.expectedYield || product.quantity
+  if (expectedYield) parts.push(`expectedYield=${expectedYield}`)
+  const yieldUnit = product.yieldUnit || product.unit
+  if (yieldUnit) parts.push(`yieldUnit=${encodeURIComponent(String(yieldUnit))}`)
+  if (product.expectedMarketTime) {
+    parts.push(`expectedMarketTime=${encodeURIComponent(String(product.expectedMarketTime))}`)
+  }
+
+  return `/pages/add-crop/index?${parts.join('&')}`
+}
+
+const goCompleteProduct = (product: ProductDisplayItem) => {
+  const url = buildEditCropUrl(product)
+  if (!url) {
+    uni.navigateTo({ url: '/pages/add-crop/index' })
+    return
+  }
+  uni.navigateTo({ url })
 }
 
 const goBuyerPage = () => {
