@@ -14,7 +14,7 @@
       </view>
 
       <view class="content">
-        <view class="card card-search">
+        <view class="card card-search buyer-search">
           <view class="search-box">
             <SvgIcon name="search" :size="16" color="var(--acm-text-muted)" class="search-icon" />
             <input
@@ -24,17 +24,17 @@
               @input="onSearchInput"
             />
           </view>
+        </view>
 
-          <view class="buyer-quick-actions">
-            <button class="buyer-quick-action" @click="goMyProducts">
-              <SvgIcon name="package" :size="22" color="var(--acm-brand-primary)" />
-              <text>代售产品</text>
-            </button>
-            <button class="buyer-quick-action" @click="goInterestList">
-              <SvgIcon name="heart" :size="22" color="var(--acm-brand-primary)" />
-              <text>感兴趣</text>
-            </button>
-          </view>
+        <view class="buyer-quick-actions">
+          <button class="buyer-quick-action" @click="goMyProducts">
+            <SvgIcon name="package" :size="22" color="var(--acm-brand-primary)" />
+            <text>待出售</text>
+          </button>
+          <button class="buyer-quick-action" @click="goInterestList">
+            <SvgIcon name="heart" :size="22" color="var(--acm-brand-primary)" />
+            <text>感兴趣</text>
+          </button>
         </view>
 
         <view class="match-result__head">
@@ -563,6 +563,10 @@ const goMyProducts = () => {
   padding: 24rpx;
 }
 
+.buyer-search {
+  margin-bottom: 18rpx;
+}
+
 .list-wrap {
   display: flex;
   flex-direction: column;
@@ -592,7 +596,7 @@ const goMyProducts = () => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18rpx;
-  margin: 20rpx 0 0;
+  margin: 0 0 28rpx;
 }
 
 .buyer-quick-action {
@@ -600,7 +604,7 @@ const goMyProducts = () => {
   padding: 0 22rpx;
   border: 1rpx solid rgba(214, 221, 214, 0.9);
   border-radius: 26rpx;
-  background: var(--acm-bg-card);
+  background: #fff;
   box-shadow: 0 8rpx 22rpx rgba(31, 42, 35, 0.06);
   display: flex;
   align-items: center;
@@ -924,8 +928,7 @@ const goMyProducts = () => {
 
 .search-box,
 .matched-box,
-.profit-summary,
-.buyer-quick-action {
+.profit-summary {
   border-color: rgba(200, 222, 197, 0.62);
   background: rgba(255, 254, 249, 0.74);
   box-shadow: none;
