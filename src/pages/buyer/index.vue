@@ -121,11 +121,16 @@
               </view>
 
               <view class="income-calc">
-                <view class="income-calc__head">
-                  <text class="income-calc__title">交易测算过程</text>
-                  <text class="income-calc__tag">预估</text>
+                <view class="income-calc__summary">
+                  <view class="income-calc__main">
+                    <text class="income-calc__title">收益测算</text>
+                    <text class="income-calc__desc">点击查看收入、成本与损耗明细</text>
+                  </view>
+                  <button class="income-calc__toggle" @click.stop="toggleCalcDetail(buyer)">
+                    {{ isCalcExpanded(buyer) ? '收起详情' : '展开详情' }}
+                  </button>
                 </view>
-                <view class="income-calc__grid">
+                <view v-if="isCalcExpanded(buyer)" class="income-calc__grid">
                   <view class="income-calc__item">
                     <text class="income-calc__label">预计收入</text>
                     <text class="income-calc__value">{{ formatCurrency(getEstimatedIncome(buyer)) }}</text>
@@ -205,9 +210,22 @@ const myProducts = ref<MyProductItem[]>([])
 
 const searchQuery = ref('')
 const isRefreshing = ref(false)
+const expandedCalcMap = ref<Record<string, boolean>>({})
 
 const getEstimatedIncome = (buyer: BuyerItem) => Number(buyer.estimatedIncome || buyer.profit || 0)
 const getNetProfit = (buyer: BuyerItem) => Number(buyer.netProfit || 0)
+
+const getCalcKey = (buyer: BuyerItem) => String(buyer.id || buyer.name)
+
+const isCalcExpanded = (buyer: BuyerItem) => Boolean(expandedCalcMap.value[getCalcKey(buyer)])
+
+const toggleCalcDetail = (buyer: BuyerItem) => {
+  const key = getCalcKey(buyer)
+  expandedCalcMap.value = {
+    ...expandedCalcMap.value,
+    [key]: !expandedCalcMap.value[key],
+  }
+}
 
 const formatNumber = (value: number) => {
   if (!Number.isFinite(value)) return '0'
@@ -240,6 +258,7 @@ const applyBuyerData = (data: {
 }) => {
   buyers.value = data.buyers || []
   myProducts.value = data.myProducts || []
+  expandedCalcMap.value = {}
 }
 
 const logBuyerLoad = (message: string, detail?: Record<string, unknown>) => {
@@ -873,34 +892,60 @@ const goMyProducts = () => {
   border: 1rpx solid rgba(214, 221, 214, 0.72);
 }
 
-.income-calc__head {
+.income-calc__summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
-  margin-bottom: 16rpx;
+}
+
+.income-calc__main {
+  min-width: 0;
+  flex: 1;
 }
 
 .income-calc__title {
+  display: block;
   color: var(--acm-text-primary);
   font-size: 26rpx;
   font-weight: 800;
 }
 
-.income-calc__tag {
+.income-calc__desc {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--acm-text-secondary);
+  font-size: 22rpx;
+  line-height: 1.35;
+}
+
+.income-calc__toggle {
   flex: 0 0 auto;
-  padding: 6rpx 14rpx;
+  margin: 0;
+  padding: 0 18rpx;
+  min-height: 48rpx;
+  border: 1rpx solid rgba(54, 125, 73, 0.18);
   border-radius: 999rpx;
-  background: rgba(54, 125, 73, 0.1);
+  background: #ffffff;
   color: var(--acm-brand-primary);
   font-size: 22rpx;
-  font-weight: 700;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.income-calc__toggle::after {
+  border: 0;
 }
 
 .income-calc__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14rpx;
+  margin-top: 18rpx;
 }
 
 .income-calc__item {
