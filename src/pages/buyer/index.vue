@@ -112,23 +112,18 @@
                 </view>
               </view>
 
-              <view class="profit-summary">
-                <view>
-                  <text class="profit-summary-title">收益测算</text>
-                  <text class="profit-summary-desc">按当前报价、可成交数量、距离和损耗估算</text>
-                </view>
-                <text class="profit-summary-value">{{ formatCurrency(getNetProfit(buyer)) }}</text>
-              </view>
-
               <view class="income-calc">
-                <view class="income-calc__summary">
+                <view class="income-calc__top">
                   <view class="income-calc__main">
                     <text class="income-calc__title">收益测算</text>
-                    <text class="income-calc__desc">点击查看收入、成本与损耗明细</text>
+                    <text class="income-calc__desc">按当前报价、可成交数量、距离和损耗估算</text>
                   </view>
-                  <button class="income-calc__toggle" @click.stop="toggleCalcDetail(buyer)">
-                    {{ isCalcExpanded(buyer) ? '收起详情' : '展开详情' }}
-                  </button>
+                  <view class="income-calc__side">
+                    <text class="income-calc__amount">{{ formatCurrency(getNetProfit(buyer)) }}</text>
+                    <button class="income-calc__toggle" @click.stop="toggleCalcDetail(buyer)">
+                      {{ isCalcExpanded(buyer) ? '收起详情' : '展开详情' }}
+                    </button>
+                  </view>
                 </view>
                 <view v-if="isCalcExpanded(buyer)" class="income-calc__grid">
                   <view class="income-calc__item">
@@ -826,7 +821,6 @@ const goMyProducts = () => {
 }
 
 .matched-box,
-.profit-summary,
 .reason-box {
   border-radius: 24rpx;
 }
@@ -851,50 +845,18 @@ const goMyProducts = () => {
   margin-bottom: 0;
 }
 
-.profit-summary {
-  background: var(--acm-brand-primary-soft);
-  padding: 22rpx;
-  margin-bottom: 18rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18rpx;
-}
-
-.profit-summary-title {
-  display: block;
-  color: var(--acm-brand-primary-dark);
-  font-size: 28rpx;
-  font-weight: 850;
-}
-
-.profit-summary-desc {
-  display: block;
-  margin-top: 8rpx;
-  color: var(--acm-text-secondary);
-  font-size: 23rpx;
-  line-height: 1.45;
-}
-
-.profit-summary-value {
-  flex: 0 0 auto;
-  color: var(--acm-brand-primary-dark);
-  font-size: 40rpx;
-  font-weight: 900;
-  line-height: 1;
-}
-
 .income-calc {
   margin-bottom: 18rpx;
-  padding: 20rpx;
-  border-radius: 24rpx;
-  background: rgba(255, 254, 249, 0.86);
+  padding: 24rpx;
+  border-radius: 26rpx;
+  background: rgba(255, 254, 249, 0.92);
   border: 1rpx solid rgba(214, 221, 214, 0.72);
+  box-sizing: border-box;
 }
 
-.income-calc__summary {
+.income-calc__top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16rpx;
 }
@@ -907,23 +869,37 @@ const goMyProducts = () => {
 .income-calc__title {
   display: block;
   color: var(--acm-text-primary);
-  font-size: 26rpx;
+  font-size: 30rpx;
   font-weight: 800;
 }
 
 .income-calc__desc {
   display: block;
-  margin-top: 6rpx;
+  margin-top: 8rpx;
   color: var(--acm-text-secondary);
-  font-size: 22rpx;
-  line-height: 1.35;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.income-calc__side {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14rpx;
+}
+
+.income-calc__amount {
+  color: var(--acm-brand-primary-dark);
+  font-size: 56rpx;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .income-calc__toggle {
-  flex: 0 0 auto;
   margin: 0;
   padding: 0 18rpx;
-  min-height: 48rpx;
+  min-height: 52rpx;
   border: 1rpx solid rgba(54, 125, 73, 0.18);
   border-radius: 999rpx;
   background: #ffffff;
@@ -945,7 +921,7 @@ const goMyProducts = () => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14rpx;
-  margin-top: 18rpx;
+  margin-top: 22rpx;
 }
 
 .income-calc__item {
@@ -981,6 +957,18 @@ const goMyProducts = () => {
 
 .income-calc__item--strong .income-calc__value {
   color: var(--acm-brand-primary);
+}
+
+@media screen and (max-width: 420px) {
+  .income-calc__top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .income-calc__side {
+    width: 100%;
+    align-items: flex-start;
+  }
 }
 
 .reason-box {
@@ -1072,7 +1060,7 @@ const goMyProducts = () => {
 
 .search-box,
 .matched-box,
-.profit-summary {
+.income-calc {
   border-color: rgba(200, 222, 197, 0.62);
   background: rgba(255, 254, 249, 0.74);
   box-shadow: none;
