@@ -73,11 +73,15 @@ import AppHeader from '../../components/common/AppHeader.vue'
 import AppCard from '../../components/common/AppCard.vue'
 import EmptyState from '../../components/common/EmptyState.vue'
 import SvgIcon from '../../components/SvgIcon.vue'
-import { getBuyerData, type MyProductItem } from '../../api/agri'
+import { getBuyerData, getMyFieldData, type CropInfo, type MyProductItem } from '../../api/agri'
 
 type ProductDisplayItem = MyProductItem & Record<string, any>
 
 const products = ref<ProductDisplayItem[]>([])
+
+const normalizeCropName = (name: string) => {
+  return String(name || '').trim().replace(/\s+/g, '').replace(/树$/, '')
+}
 
 const formatNumber = (value: number) => {
   if (!Number.isFinite(value)) return '0'
@@ -98,8 +102,23 @@ const formatPrice = (product: ProductDisplayItem) => {
 const loadProducts = async () => {
   uni.showLoading({ title: '加载中...' })
   try {
-    const data = await getBuyerData()
-    products.value = (data.myProducts || []) as ProductDisplayItem[]
+    const [buyerData, fieldData] = await Promise.all([getBuyerData(), getMyFieldData()])
+    const crops = (fieldData.crops || []) as CropInfo[]
+    products.value = ((buyerData.myProducts || []) as ProductDisplayItem[]).map((product) => {
+      const matchedCrop = crops.find((crop) => normalizeCropName(crop.name) === normalizeCropName(product.name))
+      if (!matchedCrop) return product
+      return {
+        ...product,
+        cropId: matchedCrop.id,
+        area: product.area || matchedCrop.area,
+        plantDate: product.plantDate || matchedCrop.plantDate,
+        stage: product.stage || matchedCrop.stage,
+        location: product.location || matchedCrop.location,
+        expectedYield: product.expectedYield || matchedCrop.expectedYield,
+        yieldUnit: product.yieldUnit || matchedCrop.yieldUnit,
+        expectedMarketTime: product.expectedMarketTime || matchedCrop.expectedMarketTime,
+      }
+    })
   } catch (_error) {
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
@@ -115,8 +134,15 @@ const goAddCrop = () => {
   uni.navigateTo({ url: '/pages/add-crop/index' })
 }
 
+const resolveCropId = (product: ProductDisplayItem) => {
+  if (product.cropId || product.crop_id || product.crop?.id) {
+    return product.cropId || product.crop_id || product.crop.id
+  }
+  return ''
+}
+
 const buildEditCropUrl = (product: ProductDisplayItem) => {
-  const cropId = product.cropId || product.crop_id || product.id
+  const cropId = resolveCropId(product)
   if (!cropId) return ''
 
   const parts = [
@@ -142,7 +168,7 @@ const buildEditCropUrl = (product: ProductDisplayItem) => {
 const goCompleteProduct = (product: ProductDisplayItem) => {
   const url = buildEditCropUrl(product)
   if (!url) {
-    uni.navigateTo({ url: '/pages/add-crop/index' })
+    uni.showToast({ title: '未找到对应作物，无法完善信息', icon: 'none' })
     return
   }
   uni.navigateTo({ url })

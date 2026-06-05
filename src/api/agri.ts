@@ -1384,6 +1384,6 @@ const normalizeMarketingMaterialPackage = (response: unknown): MarketingMaterial
 }
 
 export const generateMarketingMaterials = async (payload: GenerateMarketingPayload) => {
-  const response = await http.post<unknown, GenerateMarketingPayload>('/ads/marketing-materials', payload)
+  const response = await http.post<unknown, GenerateMarketingPayload>('/ads/generate', payload)
   return normalizeMarketingMaterialPackage(response)
 }

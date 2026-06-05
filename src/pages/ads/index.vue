@@ -514,7 +514,7 @@ const goCompletePromotionProduct = () => {
 
   const url = buildEditCropUrl(product)
   if (!url) {
-    uni.showToast({ title: '当前产品缺少作物编号', icon: 'none' })
+    uni.showToast({ title: '未找到对应作物，无法完善信息', icon: 'none' })
     return
   }
   uni.navigateTo({ url })
