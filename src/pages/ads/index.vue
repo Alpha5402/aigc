@@ -117,50 +117,60 @@
         />
 
         <view v-if="materialPackage" class="result-wrap">
-          <view class="section-head">
-            <view class="section-title-wrap">
+          <view class="section-head material-result__head">
+            <view class="section-title-wrap material-result__title-wrap">
               <SvgIcon name="files" :size="18" color="var(--acm-primary)" />
               <text class="section-title">生成结果</text>
             </view>
-            <button class="text-btn" @click="copyAllMaterials">复制全部</button>
+            <button class="material-copy-btn material-copy-btn--primary" @click.stop="copyAllMaterials">复制全部</button>
           </view>
 
           <view class="material-card">
-            <view class="material-head">
-              <text class="material-title">商品标题</text>
-              <button class="copy-btn" @click="copyText(materialPackage.productTitle)">复制</button>
+            <view class="material-head material-card__head">
+              <view class="material-card__title-wrap">
+                <text class="material-title">商品标题</text>
+              </view>
+              <button class="material-copy-btn" @click.stop="copyText(materialPackage.productTitle)">复制</button>
             </view>
             <text class="material-content">{{ materialPackage.productTitle }}</text>
           </view>
 
           <view class="material-card">
-            <view class="material-head">
-              <text class="material-title">朋友圈文案</text>
-              <button class="copy-btn" @click="copyText(materialPackage.wechatCopy)">复制</button>
+            <view class="material-head material-card__head">
+              <view class="material-card__title-wrap">
+                <text class="material-title">朋友圈文案</text>
+              </view>
+              <button class="material-copy-btn" @click.stop="copyText(materialPackage.wechatCopy)">复制</button>
             </view>
             <text class="material-content">{{ materialPackage.wechatCopy }}</text>
           </view>
 
           <view class="material-card">
-            <view class="material-head">
-              <text class="material-title">短视频口播</text>
-              <button class="copy-btn" @click="copyText(materialPackage.shortVideoScript)">复制</button>
+            <view class="material-head material-card__head">
+              <view class="material-card__title-wrap">
+                <text class="material-title">短视频口播</text>
+              </view>
+              <button class="material-copy-btn" @click.stop="copyText(materialPackage.shortVideoScript)">复制</button>
             </view>
             <text class="material-content">{{ materialPackage.shortVideoScript }}</text>
           </view>
 
           <view class="material-card">
-            <view class="material-head">
-              <text class="material-title">收购商询价话术</text>
-              <button class="copy-btn" @click="copyText(materialPackage.inquiryScript)">复制</button>
+            <view class="material-head material-card__head">
+              <view class="material-card__title-wrap">
+                <text class="material-title">收购商询价话术</text>
+              </view>
+              <button class="material-copy-btn" @click.stop="copyText(materialPackage.inquiryScript)">复制</button>
             </view>
             <text class="material-content">{{ materialPackage.inquiryScript }}</text>
           </view>
 
           <view class="material-card">
-            <view class="material-head">
-              <text class="material-title">配图建议</text>
-              <button class="copy-btn" @click="copyText(materialPackage.imageSuggestions.join('\n'))">复制</button>
+            <view class="material-head material-card__head">
+              <view class="material-card__title-wrap">
+                <text class="material-title">配图建议</text>
+              </view>
+              <button class="material-copy-btn" @click.stop="copyText(materialPackage.imageSuggestions.join('\n'))">复制</button>
             </view>
             <text v-for="(item, index) in materialPackage.imageSuggestions" :key="index" class="list-line">
               {{ index + 1 }}. {{ item }}
@@ -168,9 +178,11 @@
           </view>
 
           <view class="material-card">
-            <view class="material-head">
-              <text class="material-title">标签建议</text>
-              <button class="copy-btn" @click="copyText(materialPackage.tags.join(' '))">复制</button>
+            <view class="material-head material-card__head">
+              <view class="material-card__title-wrap">
+                <text class="material-title">标签建议</text>
+              </view>
+              <button class="material-copy-btn" @click.stop="copyText(materialPackage.tags.join(' '))">复制</button>
             </view>
             <view class="tag-list">
               <text v-for="tag in materialPackage.tags" :key="tag" class="tag">{{ tag }}</text>
@@ -178,9 +190,11 @@
           </view>
 
           <view class="compliance-card">
-            <view class="material-head">
-              <text class="material-title">合规提醒</text>
-              <button class="copy-btn" @click="copyText(materialPackage.complianceTips.join('\n'))">复制</button>
+            <view class="material-head material-card__head">
+              <view class="material-card__title-wrap">
+                <text class="material-title">合规提醒</text>
+              </view>
+              <button class="material-copy-btn" @click.stop="copyText(materialPackage.complianceTips.join('\n'))">复制</button>
             </view>
             <text v-for="(item, index) in materialPackage.complianceTips" :key="index" class="list-line">
               {{ index + 1 }}. {{ item }}
@@ -664,6 +678,53 @@ const showNotice = () => {
   margin-bottom: 20rpx;
 }
 
+.material-card__head,
+.material-result__head {
+  position: relative;
+  z-index: 2;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.material-card__title-wrap,
+.material-result__title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.material-copy-btn {
+  position: relative;
+  z-index: 3;
+  flex: 0 0 auto;
+  min-height: 52rpx;
+  margin: 0 4rpx 0 0;
+  padding: 0 20rpx;
+  border: 1rpx solid rgba(54, 125, 73, 0.18);
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: var(--acm-brand-primary);
+  font-size: 23rpx;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  box-shadow: 0 6rpx 16rpx rgba(31, 42, 35, 0.06);
+}
+
+.material-copy-btn::after {
+  border: 0;
+}
+
+.material-copy-btn--primary {
+  padding: 0 24rpx;
+  border-color: var(--acm-brand-primary);
+  background: var(--acm-brand-primary);
+  color: #ffffff;
+}
+
 .card-title,
 .section-title {
   font-size: 34rpx;
@@ -1009,13 +1070,21 @@ const showNotice = () => {
   margin-top: 4rpx;
 }
 
+.result-wrap .section-title-wrap {
+  justify-content: flex-start;
+}
+
 .material-title {
+  display: block;
   font-size: 30rpx;
   color: var(--acm-text-primary);
+  line-height: 1.35;
 }
 
 .material-content,
 .list-line {
+  position: relative;
+  z-index: 1;
   display: block;
   white-space: pre-wrap;
   font-size: 27rpx;
