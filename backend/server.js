@@ -44,7 +44,7 @@ const LOCAL_AVATAR_MAX_SIZE = 2 * 1024 * 1024
 const LOCAL_AVATAR_DIR = path.join(__dirname, 'public', 'uploads', 'avatars')
 const DASHSCOPE_API_URL =
   process.env.DASHSCOPE_API_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-const MARKET_REPORT_AI_ENABLED = String(process.env.MARKET_REPORT_AI_ENABLED || 'false') === 'true'
+const MARKET_REPORT_AI_ENABLED = String(process.env.MARKET_REPORT_AI_ENABLED || 'true') === 'true'
 const BUYER_AI_ENABLED = String(process.env.BUYER_AI_ENABLED || 'false') === 'true'
 
 app.use(express.json({ limit: '12mb' }))
@@ -656,12 +656,21 @@ const extractMessageText = (message) => {
   return ''
 }
 
-const callDashScopeMessage = async ({ model, messages, enableThinking = true, timeoutMs }) => {
+const callDashScopeMessage = async ({ model, messages, enableThinking, timeoutMs }) => {
   const apiKey = process.env.DASHSCOPE_API_KEY
-  if (!apiKey) return null
+  if (!apiKey) return { content: '', reasoning: '', error: 'missing_api_key' }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), Number(timeoutMs || process.env.AI_TIMEOUT_MS || 15000))
+  const timeout = setTimeout(() => controller.abort(), Number(timeoutMs || process.env.AI_TIMEOUT_MS || 60000))
+  const body = {
+    model,
+    messages,
+    result_format: 'message',
+  }
+
+  if (typeof enableThinking === 'boolean') {
+    body.enable_thinking = enableThinking
+  }
 
   try {
     const response = await fetch(DASHSCOPE_API_URL, {
@@ -670,26 +679,37 @@ const callDashScopeMessage = async ({ model, messages, enableThinking = true, ti
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        result_format: 'message',
-        enable_thinking: enableThinking,
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     })
 
-    if (!response.ok) return null
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      console.warn('[dashscope] request failed:', response.status, errorText.slice(0, 500))
+      return {
+        content: '',
+        reasoning: '',
+        error: `dashscope_http_${response.status}`,
+        status: response.status,
+        detail: errorText,
+      }
+    }
     const data = await response.json()
     const message = data?.choices?.[0]?.message
     const content = extractMessageText(message)
-    if (!content) return null
+    if (!content) {
+      console.warn('[dashscope] empty response:', JSON.stringify(data).slice(0, 500))
+      return { content: '', reasoning: '', error: 'empty_response', detail: data }
+    }
     return {
       content,
       reasoning: message?.reasoning_content || '',
+      model,
     }
-  } catch (_error) {
-    return null
+  } catch (error) {
+    const message = error?.name === 'AbortError' ? 'timeout' : error?.message || 'request_failed'
+    console.warn('[dashscope] request error:', message)
+    return { content: '', reasoning: '', error: message }
   } finally {
     clearTimeout(timeout)
   }
@@ -698,7 +718,7 @@ const callDashScopeMessage = async ({ model, messages, enableThinking = true, ti
 const callDashScopeDiagnosis = async (payload) => {
   const hasImage = Boolean(payload.image)
   const model = hasImage
-    ? process.env.DASHSCOPE_VL_MODEL || process.env.DASHSCOPE_MODEL || 'qwen-vl-max-latest'
+    ? process.env.DASHSCOPE_VL_MODEL || process.env.DASHSCOPE_MODEL || 'qwen-vl-plus'
     : process.env.DASHSCOPE_TEXT_MODEL || process.env.DASHSCOPE_MODEL || 'qwen3.6-flash'
   const userContent = hasImage
     ? [
@@ -707,9 +727,9 @@ const callDashScopeDiagnosis = async (payload) => {
       ]
     : String(payload.content || '请诊断当前作物症状。')
 
-  return callDashScopeMessage({
-    model,
-    enableThinking: hasImage ? false : String(process.env.DASHSCOPE_ENABLE_THINKING || 'true') === 'true',
+  const requestOptions = {
+    enableThinking: hasImage ? undefined : String(process.env.DASHSCOPE_DIAGNOSIS_ENABLE_THINKING || 'false') === 'true',
+    timeoutMs: Number(process.env.AI_DIAGNOSIS_TIMEOUT_MS || 60000),
     messages: [
       {
         role: 'system',
@@ -717,7 +737,26 @@ const callDashScopeDiagnosis = async (payload) => {
       },
       { role: 'user', content: userContent },
     ],
-  })
+  }
+
+  if (!hasImage) {
+    return callDashScopeMessage({ ...requestOptions, model })
+  }
+
+  const fallbackModels = String(process.env.DASHSCOPE_VL_FALLBACK_MODELS || 'qwen-vl-plus')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+  const models = Array.from(new Set([model, ...fallbackModels]))
+  let lastResult = null
+
+  for (const currentModel of models) {
+    const result = await callDashScopeMessage({ ...requestOptions, model: currentModel })
+    if (result?.content) return result
+    lastResult = result
+  }
+
+  return lastResult
 }
 
 const callDashScopeMarketReport = async (prompt) => {
@@ -843,6 +882,90 @@ const buildMarketingMaterialPackage = (payload = {}) => {
         : '如需使用认证、检测报告、品牌授权等表述，请先确认已有对应材料。',
       '价格、产量和上市时间均为参考信息，发布前请按实际情况更新。',
     ],
+  }
+}
+
+const tryParseMarketingMaterialJson = (content) => {
+  try {
+    const raw = String(content || '').replace(/```(?:json)?/g, '').replace(/```/g, '').trim()
+    const match = raw.match(/\{[\s\S]*\}/)
+    const parsed = JSON.parse(match ? match[0] : raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    return parsed
+  } catch (_error) {
+    return null
+  }
+}
+
+const normalizeStringList = (value) => {
+  if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean)
+  if (typeof value === 'string') {
+    return value
+      .split(/\n|,|，/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+  return []
+}
+
+const normalizeMarketingMaterialPackage = (value, fallbackPackage) => {
+  const source = value && typeof value === 'object' ? value : {}
+  return {
+    productTitle: String(source.productTitle || fallbackPackage.productTitle || '').trim(),
+    wechatCopy: String(source.wechatCopy || fallbackPackage.wechatCopy || '').trim(),
+    shortVideoScript: String(source.shortVideoScript || fallbackPackage.shortVideoScript || '').trim(),
+    inquiryScript: String(source.inquiryScript || fallbackPackage.inquiryScript || '').trim(),
+    imageSuggestions: normalizeStringList(source.imageSuggestions).length
+      ? normalizeStringList(source.imageSuggestions).slice(0, 6)
+      : fallbackPackage.imageSuggestions,
+    tags: normalizeStringList(source.tags).length
+      ? normalizeStringList(source.tags).slice(0, 8)
+      : fallbackPackage.tags,
+    completenessScore: Math.max(0, Math.min(100, Number(source.completenessScore || fallbackPackage.completenessScore || 0))),
+    complianceTips: normalizeStringList(source.complianceTips).length
+      ? normalizeStringList(source.complianceTips).slice(0, 6)
+      : fallbackPackage.complianceTips,
+  }
+}
+
+const callDashScopeMarketingMaterials = async (payload, fallbackPackage) => {
+  const model = process.env.DASHSCOPE_TEXT_MODEL || process.env.DASHSCOPE_MODEL || 'qwen3.6-flash'
+  const result = await callDashScopeMessage({
+    model,
+    enableThinking: String(process.env.DASHSCOPE_MARKETING_ENABLE_THINKING || 'false') === 'true',
+    timeoutMs: Number(process.env.MARKETING_AI_TIMEOUT_MS || process.env.AI_TIMEOUT_MS || 60000),
+    messages: [
+      {
+        role: 'system',
+        content:
+          '你是智慧农业营销助手。必须基于用户提供的作物档案、行情和卖点生成真实可信的中文营销素材，不编造认证、检测、疗效、产量或价格。只返回 JSON，不要代码块。',
+      },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          task: '生成农产品营销素材包',
+          outputSchema: {
+            productTitle: '商品标题',
+            wechatCopy: '朋友圈或社群文案',
+            shortVideoScript: '短视频口播脚本',
+            inquiryScript: '给收购商的询价话术',
+            imageSuggestions: ['配图建议'],
+            tags: ['标签'],
+            completenessScore: 0,
+            complianceTips: ['合规提醒'],
+          },
+          cropProfile: payload,
+          safetyDraft: fallbackPackage,
+        }),
+      },
+    ],
+  })
+  if (!result?.content) return result
+  const parsed = tryParseMarketingMaterialJson(result.content)
+  if (!parsed) return { ...result, content: '', error: 'invalid_json' }
+  return {
+    ...result,
+    package: normalizeMarketingMaterialPackage(parsed, fallbackPackage),
   }
 }
 
@@ -1018,6 +1141,51 @@ const marketItemRowToView = (row) => ({
   updatedAt: row.updated_at || '',
 })
 
+const toChinaDate = (date = new Date()) => new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+const applyLatestPriceStats = (item) => {
+  if (!item.spuId) return item
+
+  const rows = db.prepare(`
+    SELECT observed_date AS date, price
+    FROM price_history
+    WHERE spu_id = ? AND price IS NOT NULL
+    ORDER BY observed_date DESC LIMIT 30
+  `).all(item.spuId)
+
+  if (!rows.length) return item
+
+  const latest = Number(rows[0].price || 0)
+  const values = rows.map((row) => Number(row.price || 0)).filter((value) => Number.isFinite(value) && value > 0)
+  if (!values.length || !latest) return item
+
+  const today = toChinaDate()
+  const forecast = readLatestActive(item.spuId, 7)
+  const forecastValues = forecast?.originDate === today
+    ? (forecast.point || []).map(Number).filter((value) => Number.isFinite(value) && value > 0)
+    : []
+  const useForecastAsCurrent = rows[0].date < today && forecastValues.length > 0
+  const current = useForecastAsCurrent ? forecastValues[0] : latest
+  const statValues = useForecastAsCurrent ? forecastValues : values
+  const previous = useForecastAsCurrent ? latest : (rows.length > 1 ? Number(rows[1].price || 0) : current)
+  const avgPrice = statValues.reduce((sum, value) => sum + value, 0) / statValues.length
+  const highPrice = Math.max(...statValues)
+  const lowPrice = Math.min(...statValues)
+  const change = previous > 0 ? ((current - previous) / previous) * 100 : Number(item.change || 0)
+  const trend = Math.abs(change) < 0.05 ? 'stable' : change > 0 ? 'up' : 'down'
+
+  return {
+    ...item,
+    currentPrice: Number(current.toFixed(2)),
+    change: Number(change.toFixed(1)),
+    trend,
+    avgPrice: Number(avgPrice.toFixed(2)),
+    highPrice: Number(highPrice.toFixed(2)),
+    lowPrice: Number(lowPrice.toFixed(2)),
+    marketStatus: useForecastAsCurrent ? '算法预估' : item.marketStatus,
+  }
+}
+
 const ensureForecastSeedData = () => {
   const count = db.prepare('SELECT COUNT(*) AS count FROM spu_tuples').get().count
   if (Number(count || 0) > 0) return
@@ -1115,6 +1283,7 @@ const getMarketOverviewFromDb = () => {
     .prepare("SELECT * FROM market_items WHERE status = 'active' ORDER BY id ASC")
     .all()
     .map(marketItemRowToView)
+    .map(applyLatestPriceStats)
 
   const priceAlerts = crops
     .map(buildPriceAlertFromMarketItem)
@@ -1355,8 +1524,15 @@ const logBuyerInterest = ({ userId, merchantId, actionType, source = 'buyer-page
   )
 }
 
+const isBuyerMatchTarget = (merchant) => {
+  const type = String(merchant?.merchantType || '').toLowerCase()
+  return type === 'purchaser' || type === 'comprehensive' || !type
+}
+
 const buildRuleBasedBuyerMatches = ({ myProducts, merchants, origin = DEFAULT_ORIGIN }) => {
-  const matches = merchants
+  const preferredMerchants = merchants.filter(isBuyerMatchTarget)
+  const candidateMerchants = preferredMerchants.length ? preferredMerchants : merchants
+  const matches = candidateMerchants
     .map((merchant) => {
       const matchedProducts = merchant.products
         .map((offer) => {
@@ -1386,8 +1562,11 @@ const buildRuleBasedBuyerMatches = ({ myProducts, merchants, origin = DEFAULT_OR
           Number(merchant.longitude),
         ),
       )
-      const transport = Math.round(distanceKm * 18 + matchedProducts.length * 12)
-      const loss = Math.round(estimatedIncome * Math.min(0.12, 0.02 + distanceKm * 0.004))
+      const matchedQuantityTotal = matchedProducts.reduce((sum, item) => sum + Number(item.matchedQuantity || 0), 0)
+      const transportRaw = distanceKm * 0.35 + matchedQuantityTotal * 0.03 + matchedProducts.length * 6
+      const transport = Math.round(Math.min(estimatedIncome * 0.22, Math.max(6, transportRaw)))
+      const lossRate = Math.min(0.08, 0.015 + Math.min(distanceKm, 80) * 0.0006)
+      const loss = Math.round(estimatedIncome * lossRate)
       const netProfit = Math.max(0, Math.round(estimatedIncome - transport - loss))
       const coverage = matchedProducts.length / Math.max(1, myProducts.length)
       const demandCoverage = matchedProducts.reduce((sum, item) => {
@@ -1412,7 +1591,7 @@ const buildRuleBasedBuyerMatches = ({ myProducts, merchants, origin = DEFAULT_OR
       const priceText = mainProduct ? `，报价${mainProduct.price}元/${mainProduct.unit}` : ''
       const efficiencyText = distanceKm <= 5
         ? '距离较近，运输和损耗成本相对可控'
-        : '综合运输成本和预估损耗后'
+        : `扣除估算运输约${transport}元、损耗约${loss}元后`
       const reason = `该商户可消化${canAbsorbText}${priceText}，距离约${distanceKm}km。${efficiencyText}，预计净收益${netProfit}元，适合优先联系。`
       const recommendationTags = [
         netProfit >= estimatedIncome * 0.88 ? '净收益高' : '收益稳定',
@@ -2394,9 +2573,19 @@ app.get('/api/market/forecast/:spu_id', optionalAuth, async (req, res) => {
     if (!spuRow) return res.status(404).json(fail('SPU 不存在或已停用', 404))
 
     // 取最新预测；若无则触发一次
+    const today = toChinaDate()
+    const latestHistoryDate = db
+      .prepare('SELECT MAX(observed_date) AS value FROM price_history WHERE spu_id = ? AND price IS NOT NULL')
+      .get(spuId)?.value
     let forecast = readLatestActive(spuId, horizonDays)
-    if (!forecast) {
-      const result = await forecastOne({ spuId, horizonDays })
+    const shouldRefresh =
+      String(req.query.refresh || '') === '1' ||
+      !forecast ||
+      forecast.originDate !== today ||
+      (latestHistoryDate && latestHistoryDate > forecast.originDate)
+
+    if (shouldRefresh) {
+      const result = await forecastOne({ spuId, horizonDays, originDate: today })
       if (!result) return res.json(ok(null, '数据不足，暂无预测'))
       forecast = readLatestActive(spuId, horizonDays)
     }
@@ -2426,6 +2615,8 @@ app.get('/api/market/forecast/:spu_id', optionalAuth, async (req, res) => {
         unit: { displayName: spuRow.unit_name },
       },
       horizon: horizonDays,
+      originDate: forecast?.originDate || today,
+      latestHistoryDate: latestHistoryDate || '',
       status: forecast?.status || 'qualitative-only',
       degraded: degradedMap[forecast?.status] || null,
       modelFamilies: forecast?.modelFamilies || [],
@@ -2502,8 +2693,6 @@ app.post('/api/market/report/rag', optionalAuth, async (req, res) => {
       console.warn(`[lightrag] market report fallback: ${error.message}`)
     }
 
-    const realReport = lightRagReport?.content ? null : await callDashScopeMarketReport(prompt)
-    const provider = lightRagReport?.content ? 'lightrag' : realReport?.content ? 'dashscope' : 'rule-fallback'
     const fallbackSources = results.map((item) => ({
       id: item.id,
       title: item.title,
@@ -2512,6 +2701,14 @@ app.post('/api/market/report/rag', optionalAuth, async (req, res) => {
       publishDate: item.publishDate,
       products: item.products,
     }))
+    const realReport = lightRagReport?.content ? null : await callDashScopeMarketReport(prompt)
+    const provider = lightRagReport?.content
+      ? 'lightrag'
+      : realReport?.content
+        ? 'dashscope'
+        : fallbackSources.length
+          ? 'kb-rag'
+          : 'no-data'
     const sources = lightRagReport?.sources?.length ? lightRagReport.sources : fallbackSources
     const reportText =
       lightRagReport?.content ||
@@ -2690,7 +2887,7 @@ app.get('/api/ads/overview', optionalAuth, (req, res) => {
     ok({
       templates: adTemplates,
       farmProfile,
-      historyList: history.length ? history : [{ title: '苹果推广文案 #1', meta: '演示数据 · 可生成新文案' }],
+      historyList: history,
     }),
   )
 })
@@ -2704,7 +2901,7 @@ app.get('/api/ai/history', optionalAuth, (req, res) => {
   )
 })
 
-const handleGenerateAdMaterials = (req, res) => {
+const handleGenerateAdMaterials = async (req, res) => {
   const payload = req.body || {}
   const legacyTemplate = payload.templateId
     ? adTemplates.find((item) => item.id === Number(payload.templateId)) || adTemplates[0]
@@ -2716,12 +2913,31 @@ const handleGenerateAdMaterials = (req, res) => {
     return
   }
 
-  const materialPackage = buildMarketingMaterialPackage({
+  const normalizedPayload = {
     ...payload,
     productName,
     goal: payload.goal || (legacyTemplate?.platform === 'douyin' ? 'video' : 'wechat'),
     sellingPoints: payload.sellingPoints || legacyTemplate?.tags || [],
-  })
+  }
+  const fallbackPackage = buildMarketingMaterialPackage(normalizedPayload)
+  const aiResult = await callDashScopeMarketingMaterials(normalizedPayload, fallbackPackage)
+  const fallbackEnabled = String(process.env.MARKETING_FALLBACK_ENABLED || 'false') === 'true'
+
+  if (!aiResult?.package && !fallbackEnabled) {
+    const isTimeout = aiResult?.error === 'timeout'
+    res.status(isTimeout ? 504 : 502).json(fail(
+      isTimeout ? '营销素材生成超时，请稍后重试' : '营销素材调用失败，请检查大模型配置',
+      isTimeout ? 504 : 502,
+      {
+        provider: 'dashscope',
+        reason: aiResult?.error || 'unknown',
+      },
+    ))
+    return
+  }
+
+  const materialPackage = aiResult?.package || fallbackPackage
+  const provider = aiResult?.package ? `dashscope:${aiResult.model || 'unknown'}` : 'rule-template'
 
   db.prepare(
     'INSERT INTO ad_history (user_id, template_id, title, content, tags, platform, engagement, provider, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -2733,7 +2949,7 @@ const handleGenerateAdMaterials = (req, res) => {
     JSON.stringify(materialPackage.tags),
     String(payload.goal || 'material-package'),
     materialPackage.completenessScore,
-    'rule-template',
+    provider,
     nowIso(),
   )
 
@@ -2751,8 +2967,22 @@ app.post('/api/ai/diagnose', requireAuth, async (req, res) => {
   }
 
   const realResult = await callDashScopeDiagnosis(payload)
+  const fallbackEnabled = String(process.env.AI_DIAGNOSIS_FALLBACK_ENABLED || 'false') === 'true'
+
+  if (!realResult?.content && !fallbackEnabled) {
+    const isTimeout = realResult?.error === 'timeout'
+    const message = isTimeout
+      ? 'AI 诊断生成超时，请稍后重试或补充更聚焦的症状描述'
+      : 'AI 诊断调用失败，请检查大模型配置或图片访问地址'
+    res.status(isTimeout ? 504 : 502).json(fail(message, isTimeout ? 504 : 502, {
+      provider: 'dashscope',
+      reason: realResult?.error || 'unknown',
+    }))
+    return
+  }
+
   const reply = realResult?.content || buildAiFallback(payload)
-  const provider = realResult?.content ? 'dashscope' : 'mock-fallback'
+  const provider = realResult?.content ? `dashscope:${realResult.model || 'unknown'}` : 'mock-fallback'
 
   db.prepare(
     'INSERT INTO ai_diagnosis_history (user_id, content, image, reply, provider, created_at) VALUES (?, ?, ?, ?, ?, ?)',

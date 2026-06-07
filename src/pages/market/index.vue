@@ -150,9 +150,9 @@
         <view class="card trend-section">
           <view class="trend-section__head">
             <view class="trend-section__title-wrap">
-              <text class="card-kicker">预测曲线</text>
+              <text class="card-kicker">行情曲线</text>
               <text class="card-title trend-section__title">价格走势</text>
-              <text class="trend-section__desc">查看近期价格变化</text>
+              <text class="trend-section__desc">查看最近价格变化</text>
             </view>
             <button class="trend-compare-btn" @click="toggleComparison">{{ showComparison ? '看预测' : '看对比' }}</button>
           </view>
@@ -192,10 +192,10 @@
             <view>
               <text class="card-kicker">增强解读</text>
               <text class="card-title">{{ marketReport.crop }} · 行情预期报告</text>
-              <text class="report-meta">{{ marketReport.region || '未指定地区' }} · {{ formatReportProvider(marketReport.provider) }}</text>
+              <text class="report-meta">{{ marketReport.region || '未指定地区' }}</text>
             </view>
           </view>
-          <text class="report-text">{{ marketReport.reportText }}</text>
+          <view class="report-text" v-html="formatReportText(marketReport.reportText)"></view>
           <view v-if="marketReport.sources.length" class="source-list">
             <view v-for="source in marketReport.sources" :key="source.id" class="source-item">
               <text class="source-title">{{ source.title }}</text>
@@ -442,16 +442,28 @@ const fetchForecast = async (spuId?: string) => {
     const data = await getMarketForecast(spuId, 7)
     if (requestSeq !== forecastRequestSeq) return
     if (data && Array.isArray(data.forecast) && data.forecast.length) {
-      // 预测段：用 "明天/后天/..." 作为日期标签
-      const labels = ['明天', '后天', '大后天', '第4天', '第5天', '第6天', '第7天']
-      priceData.value = data.forecast.slice(0, 7).map((f, i) => ({
-        date: labels[i] || `第${i + 1}天`,
-        price: f.point ?? 0,
-        ci80L: f.ci80Lower ?? undefined,
-        ci80U: f.ci80Upper ?? undefined,
-        ci95L: f.ci95Lower ?? undefined,
-        ci95U: f.ci95Upper ?? undefined,
-      }))
+      const historyPoints = Array.isArray(data.history) ? data.history.slice(-7) : []
+      const latestHistoryDate = data.latestHistoryDate || historyPoints[historyPoints.length - 1]?.date || ''
+      const today = getChinaToday()
+      const historyIsStale = !latestHistoryDate || latestHistoryDate < today
+
+      if (historyIsStale) {
+        const originDate = data.originDate || today
+        priceData.value = data.forecast.slice(0, 7).map((f, i) => ({
+          date: formatChartDate(addDays(originDate, i)),
+          price: f.point ?? 0,
+          ci80L: f.ci80Lower ?? undefined,
+          ci80U: f.ci80Upper ?? undefined,
+          ci95L: f.ci95Lower ?? undefined,
+          ci95U: f.ci95Upper ?? undefined,
+        }))
+        syncSelectedCropFromSeries(priceData.value, historyPoints[historyPoints.length - 1]?.price)
+      } else {
+        priceData.value = historyPoints.map((point) => ({
+          date: formatChartDate(point.date),
+          price: point.price,
+        }))
+      }
       forecastReady.value = priceData.value.some((item) => Number(item.price) > 0)
     } else {
       priceData.value = []
@@ -568,6 +580,49 @@ const toggleComparison = () => {
   showComparison.value = !showComparison.value
 }
 
+const getChinaToday = () => new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+const addDays = (date: string, days: number) => {
+  const match = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return date
+  const value = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days))
+  return value.toISOString().slice(0, 10)
+}
+
+const formatChartDate = (date: string) => {
+  const match = String(date || '').match(/(\d{1,2})-(\d{1,2})$/)
+  if (!match) return String(date || '')
+  return `${Number(match[1])}/${Number(match[2])}`
+}
+
+const syncSelectedCropFromSeries = (
+  series: Array<{ price: number | null | undefined }>,
+  previousPrice?: number,
+) => {
+  const values = series.map((item) => Number(item.price || 0)).filter((value) => Number.isFinite(value) && value > 0)
+  if (!values.length) return
+
+  const currentPrice = values[0]
+  const avgPrice = values.reduce((sum, value) => sum + value, 0) / values.length
+  const highPrice = Math.max(...values)
+  const lowPrice = Math.min(...values)
+  const previous = Number(previousPrice || 0)
+  const change = previous > 0 ? ((currentPrice - previous) / previous) * 100 : selectedCrop.value.change
+  const nextCrop = {
+    ...selectedCrop.value,
+    currentPrice: Number(currentPrice.toFixed(2)),
+    avgPrice: Number(avgPrice.toFixed(2)),
+    highPrice: Number(highPrice.toFixed(2)),
+    lowPrice: Number(lowPrice.toFixed(2)),
+    change: Number(change.toFixed(1)),
+    trend: Math.abs(change) < 0.05 ? 'stable' : change > 0 ? 'up' : 'down',
+    marketStatus: '算法预估',
+  }
+
+  selectedCrop.value = nextCrop
+  crops.value = crops.value.map((crop) => (crop.id === nextCrop.id ? nextCrop : crop))
+}
+
 const handleGenerateMarketReport = async () => {
   if (!selectedCrop.value.id || ragLoading.value) return
 
@@ -590,8 +645,102 @@ const handleGenerateMarketReport = async () => {
 const formatReportProvider = (provider: string) => {
   if (provider === 'lightrag') return 'LightRAG增强报告'
   if (provider === 'dashscope') return 'AI增强报告'
+  if (provider === 'kb-rag') return '公开资料报告'
+  if (provider === 'no-data') return '资料不足报告'
   if (provider === 'rule-fallback' || provider === 'mock-fallback' || provider === 'local-fallback') return '兜底报告'
   return '行情报告'
+}
+
+const formatReportText = (content: string): string => {
+  if (!content) return ''
+  return renderMarkdown(content)
+}
+
+const escapeHtml = (content: string): string =>
+  content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
+const renderInlineMarkdown = (content: string): string => {
+  const escaped = escapeHtml(content)
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*(\S(?:.*?\S)?)\*(?!\*)/g, '$1<em>$2</em>')
+    .replace(/(^|[^_])_(\S(?:.*?\S)?)_/g, '$1<em>$2</em>')
+    .replace(/`([^`]+?)`/g, '<code>$1</code>')
+}
+
+const renderMarkdown = (content: string): string => {
+  const lines = String(content || '').replace(/\r\n/g, '\n').split('\n')
+  const html: string[] = []
+  let listType: 'ul' | 'ol' | '' = ''
+
+  const closeList = () => {
+    if (!listType) return
+    html.push(`</${listType}>`)
+    listType = ''
+  }
+
+  const openList = (type: 'ul' | 'ol') => {
+    if (listType === type) return
+    closeList()
+    html.push(`<${type} class="md-list md-list--${type}">`)
+    listType = type
+  }
+
+  lines.forEach((rawLine) => {
+    const line = rawLine.trim()
+
+    if (!line) {
+      closeList()
+      return
+    }
+
+    if (/^[-*_]{3,}$/.test(line)) {
+      closeList()
+      html.push('<hr class="md-divider">')
+      return
+    }
+
+    const bracketHeadingMatch = line.match(/^【(.+?)】$/)
+    if (bracketHeadingMatch) {
+      closeList()
+      html.push(`<h3 class="md-heading md-heading--3">${renderInlineMarkdown(bracketHeadingMatch[1])}</h3>`)
+      return
+    }
+
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/)
+    if (headingMatch) {
+      closeList()
+      const level = Math.min(3, headingMatch[1].length)
+      html.push(`<h${level} class="md-heading md-heading--${level}">${renderInlineMarkdown(headingMatch[2])}</h${level}>`)
+      return
+    }
+
+    const orderedMatch = line.match(/^(\d+)[.)]\s+(.+)$/)
+    if (orderedMatch) {
+      openList('ol')
+      html.push(`<li>${renderInlineMarkdown(orderedMatch[2])}</li>`)
+      return
+    }
+
+    const unorderedMatch = line.match(/^[-*+]\s+(.+)$/)
+    if (unorderedMatch) {
+      openList('ul')
+      html.push(`<li>${renderInlineMarkdown(unorderedMatch[1])}</li>`)
+      return
+    }
+
+    closeList()
+    html.push(`<p class="md-paragraph">${renderInlineMarkdown(line)}</p>`)
+  })
+
+  closeList()
+  return html.join('')
 }
 
 const openRecommendation = (recommendation: RecommendationItem) => {
@@ -1197,10 +1346,75 @@ const openRecommendation = (recommendation: RecommendationItem) => {
 
 .report-text {
   display: block;
-  white-space: pre-line;
   font-size: 26rpx;
   color: var(--acm-text-secondary);
   line-height: 1.75;
+}
+
+.report-text :deep(.md-heading) {
+  display: block;
+  margin: 22rpx 0 10rpx;
+  color: var(--acm-text-primary);
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.report-text :deep(.md-heading:first-child) {
+  margin-top: 0;
+}
+
+.report-text :deep(.md-heading--1),
+.report-text :deep(.md-heading--2),
+.report-text :deep(.md-heading--3) {
+  font-size: 29rpx;
+}
+
+.report-text :deep(.md-paragraph) {
+  margin: 0 0 12rpx;
+}
+
+.report-text :deep(.md-paragraph:last-child) {
+  margin-bottom: 0;
+}
+
+.report-text :deep(.md-divider) {
+  height: 1rpx;
+  border: 0;
+  margin: 22rpx 0;
+  background: rgba(178, 202, 176, 0.58);
+}
+
+.report-text :deep(.md-list) {
+  margin: 0 0 14rpx;
+  padding-left: 34rpx;
+}
+
+.report-text :deep(.md-list li) {
+  margin-bottom: 8rpx;
+  padding-left: 4rpx;
+}
+
+.report-text :deep(strong) {
+  color: var(--acm-brand-primary-dark);
+  font-weight: 850;
+}
+
+.report-text :deep(em) {
+  font-style: normal;
+  color: var(--acm-text-regular);
+}
+
+.report-text :deep(code) {
+  display: inline-block;
+  max-width: 100%;
+  padding: 1rpx 8rpx;
+  border-radius: 8rpx;
+  background: rgba(54, 125, 73, 0.09);
+  color: var(--acm-brand-primary-dark);
+  font-size: 24rpx;
+  white-space: normal;
+  word-break: break-word;
+  box-sizing: border-box;
 }
 
 .source-list {

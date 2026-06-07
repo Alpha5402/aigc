@@ -5,6 +5,7 @@
         <view class="brand-mark">田</view>
         <view class="brand-copy">
           <text class="brand-name">云上农管家</text>
+          <hr class="brand-divider" />
           <text class="brand-subtitle">管理控制台</text>
         </view>
       </view>

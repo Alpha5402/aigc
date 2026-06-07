@@ -343,7 +343,7 @@ const showVoiceHint = async () => {
 const showApiConfig = () => {
   uni.showModal({
     title: 'AI 配置状态',
-    content: 'AI 问诊已改为后端代理模式。请在服务器 backend/.env 中配置 DASHSCOPE_API_KEY；未配置或调用失败时会自动返回演示兜底诊断。',
+    content: 'AI 问诊已改为后端代理模式。请在服务器 backend/.env 中配置 DASHSCOPE_API_KEY、DASHSCOPE_TEXT_MODEL 和 DASHSCOPE_VL_MODEL；调用失败时会直接提示错误，避免返回演示诊断。',
     showCancel: false,
     confirmText: '知道了'
   })
@@ -383,7 +383,11 @@ const restoreHistory = (record: MessageItem) => {
 const stripHtml = (content: string): string => {
   if (!content) return ''
   return sanitizeContent(content)
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^[-*_]{3,}\s*$/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '')
     .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
     .replace(/<[^>]*>/g, '')
     .replace(/\s+/g, ' ')
     .trim()
@@ -392,15 +396,93 @@ const stripHtml = (content: string): string => {
 
 const formatContent = (content: string): string => {
   if (!content) return ''
-  return sanitizeContent(content)
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>')
+  return renderMarkdown(sanitizeContent(content))
 }
 
 const sanitizeContent = (content: string): string => {
   return content
     .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
     .replace(/[🔍📖🛡️👁️]/g, '')
+}
+
+const escapeHtml = (content: string): string =>
+  content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
+const renderInlineMarkdown = (content: string): string => {
+  const escaped = escapeHtml(content)
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*(\S(?:.*?\S)?)\*(?!\*)/g, '$1<em>$2</em>')
+    .replace(/(^|[^_])_(\S(?:.*?\S)?)_/g, '$1<em>$2</em>')
+    .replace(/`([^`]+?)`/g, '<code>$1</code>')
+}
+
+const renderMarkdown = (content: string): string => {
+  const lines = content.replace(/\r\n/g, '\n').split('\n')
+  const html: string[] = []
+  let listType: 'ul' | 'ol' | '' = ''
+
+  const closeList = () => {
+    if (!listType) return
+    html.push(`</${listType}>`)
+    listType = ''
+  }
+
+  const openList = (type: 'ul' | 'ol') => {
+    if (listType === type) return
+    closeList()
+    html.push(`<${type} class="md-list md-list--${type}">`)
+    listType = type
+  }
+
+  lines.forEach((rawLine) => {
+    const line = rawLine.trim()
+
+    if (!line) {
+      closeList()
+      return
+    }
+
+    if (/^[-*_]{3,}$/.test(line)) {
+      closeList()
+      html.push('<hr class="md-divider">')
+      return
+    }
+
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/)
+    if (headingMatch) {
+      closeList()
+      const level = Math.min(3, headingMatch[1].length)
+      html.push(`<h${level} class="md-heading md-heading--${level}">${renderInlineMarkdown(headingMatch[2])}</h${level}>`)
+      return
+    }
+
+    const orderedMatch = line.match(/^(\d+)[.)]\s+(.+)$/)
+    if (orderedMatch) {
+      openList('ol')
+      html.push(`<li>${renderInlineMarkdown(orderedMatch[2])}</li>`)
+      return
+    }
+
+    const unorderedMatch = line.match(/^[-*+]\s+(.+)$/)
+    if (unorderedMatch) {
+      openList('ul')
+      html.push(`<li>${renderInlineMarkdown(unorderedMatch[1])}</li>`)
+      return
+    }
+
+    closeList()
+    html.push(`<p class="md-paragraph">${renderInlineMarkdown(line)}</p>`)
+  })
+
+  closeList()
+  return html.join('')
 }
 
 const handleSendMessage = async () => {
@@ -845,6 +927,68 @@ refreshCanSend()
   color: var(--acm-text-primary);
   font-size: 28rpx;
   line-height: 1.72;
+}
+
+.chat-content :deep(.md-heading) {
+  display: block;
+  margin: 0 0 12rpx;
+  color: var(--acm-brand-primary-dark);
+  font-weight: 860;
+  line-height: 1.35;
+}
+
+.chat-content :deep(.md-heading--1),
+.chat-content :deep(.md-heading--2),
+.chat-content :deep(.md-heading--3) {
+  font-size: 30rpx;
+}
+
+.chat-content :deep(.md-paragraph) {
+  margin: 0 0 14rpx;
+}
+
+.chat-content :deep(.md-paragraph:last-child) {
+  margin-bottom: 0;
+}
+
+.chat-content :deep(.md-divider) {
+  height: 1rpx;
+  border: 0;
+  margin: 18rpx 0;
+  background: rgba(200, 222, 197, 0.86);
+}
+
+.chat-content :deep(.md-list) {
+  margin: 0 0 14rpx;
+  padding-left: 34rpx;
+}
+
+.chat-content :deep(.md-list li) {
+  margin-bottom: 8rpx;
+  padding-left: 4rpx;
+}
+
+.chat-content :deep(strong) {
+  color: var(--acm-brand-primary-dark);
+  font-weight: 850;
+}
+
+.chat-content :deep(em) {
+  font-style: normal;
+  color: var(--acm-text-regular);
+}
+
+.chat-content :deep(code) {
+  display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
+  border-radius: 8rpx;
+  background: rgba(238, 247, 236, 0.88);
+  color: var(--acm-brand-primary-dark);
+  font-size: 24rpx;
+  line-height: 1.4;
+  padding: 2rpx 8rpx;
+  word-break: break-all;
 }
 
 .chat-text {

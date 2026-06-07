@@ -157,11 +157,11 @@ const persistForecastRun = ({
   const generatedAt = nowIso()
 
   // 同键旧记录 → superseded
-  if (['active', 'clipped', 'cold_start'].includes(status)) {
+  if (['active', 'clipped', 'cold_start', 'degraded'].includes(status)) {
     db.prepare(
       `UPDATE forecast_runs SET status = 'superseded'
        WHERE spu_id = ? AND origin_date = ? AND horizon_days = ?
-         AND status IN ('active','clipped','cold_start','qualitative-only')`,
+         AND status IN ('active','clipped','cold_start','degraded','qualitative-only')`,
     ).run(spuId, originDate, horizonDays)
   }
 
@@ -354,7 +354,7 @@ const readLatestActive = (spuId, horizonDays = 7) => {
     .prepare(
       `SELECT * FROM forecast_runs
        WHERE spu_id = ? AND horizon_days = ?
-         AND status IN ('active','clipped','cold_start','qualitative-only')
+         AND status IN ('active','clipped','cold_start','degraded','qualitative-only')
        ORDER BY generated_at DESC LIMIT 1`,
     )
     .get(spuId, horizonDays)

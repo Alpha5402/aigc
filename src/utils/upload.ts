@@ -34,7 +34,7 @@ const getUploadSignUrl = (): string => {
   return String(runtimeUploadUrl || envUploadUrl || '/oss/sign').trim()
 }
 
-export const isMockMode = (): boolean => !String((import.meta as any)?.env?.VITE_API_BASE_URL || uni.getStorageSync('baseURL') || '').trim()
+export const isMockMode = (): boolean => String((import.meta as any)?.env?.VITE_USE_MOCK || '').trim() === 'true'
 
 const getFileSize = (filePath: string): Promise<number> =>
   new Promise((resolve, reject) => {

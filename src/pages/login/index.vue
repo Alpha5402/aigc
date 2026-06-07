@@ -3,15 +3,15 @@
     <view class="header">
       <view class="status-bar-spacer" :style="{ height: `${statusBarHeight}px` }"></view>
       <view class="header-content">
-        <view class="logo-wrap">
+        <!-- <view class="logo-wrap">
           <image class="logo" src="/static/logo.png" mode="aspectFit" />
-        </view>
+        </view> -->
         <text class="app-name">云上农管家</text>
         <text class="app-slogan">种植管理、农技问诊、行情销售，一站式智慧农服助手</text>
       </view>
     </view>
 
-    <scroll-view class="content" scroll-y>
+    <view class="content">
       <view class="login-card">
         <view class="tab-wrap">
           <view
@@ -142,7 +142,7 @@
         <text class="agree-text">和</text>
         <text class="link-text" @click="showAgreement('privacy')">《隐私政策》</text>
       </view>
-    </scroll-view>
+    </view>
   </view>
 </template>
 
@@ -274,10 +274,11 @@ const showAgreement = (type: string) => {
 
 <style scoped lang="scss">
 .page {
-  height: 100vh;
+  min-height: 100vh;
+  height: auto;
   background: var(--acm-bg-field-gradient);
-  display: flex;
-  flex-direction: column;
+  display: block;
+  overflow-y: auto;
 }
 
 .header {
@@ -297,9 +298,9 @@ const showAgreement = (type: string) => {
   margin: 0 auto;
 }
 
-.logo-wrap {
-  margin-bottom: 24rpx;
-}
+// .logo-wrap {
+//   margin-bottom: 24rpx;
+// }
 
 .logo {
   width: 120rpx;
@@ -547,13 +548,10 @@ const showAgreement = (type: string) => {
 }
 
 @media screen and (min-width: 768px) {
-  .page {
-    align-items: center;
-  }
-
   .header,
   .content {
     width: min(100vw, 480px);
+    margin: 0 auto;
   }
 }
 
@@ -586,10 +584,10 @@ const showAgreement = (type: string) => {
   box-shadow: 0 18rpx 42rpx rgba(37, 84, 58, 0.16);
 }
 
-.logo-wrap {
-  background: rgba(255, 254, 249, 0.88);
-  border: 1rpx solid rgba(255, 254, 249, 0.42);
-}
+// .logo-wrap {
+//   background: rgba(255, 254, 249, 0.88);
+//   border: 1rpx solid rgba(255, 254, 249, 0.42);
+// }
 
 .app-name,
 .app-slogan {

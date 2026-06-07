@@ -934,6 +934,8 @@ export interface MarketForecastData {
     unit: { displayName: string }
   }
   horizon: number
+  originDate?: string
+  latestHistoryDate?: string
   status: string
   degraded: string | null
   modelFamilies: string[]
@@ -961,16 +963,12 @@ export const generateMarketRagReport = async (payload: {
     )
   }
 
-  try {
-    return await http.request<MarketRagReportResult, typeof payload>({
-      url: '/market/report/rag',
-      method: 'POST',
-      data: payload,
-      timeout: 60000,
-    })
-  } catch (_error) {
-    return buildLocalMarketFallbackReport(payload)
-  }
+  return http.request<MarketRagReportResult, typeof payload>({
+    url: '/market/report/rag',
+    method: 'POST',
+    data: payload,
+    timeout: 60000,
+  })
 }
 
 export const getBuyerData = async () => {
@@ -1267,7 +1265,12 @@ export const askAiDiagnosis = async (payload: AIDiagnosisPayload) => {
     }, 900)
   }
 
-  return http.post<AIDiagnosisResult, AIDiagnosisPayload>('/ai/diagnose', payload)
+  return http.request<AIDiagnosisResult, AIDiagnosisPayload>({
+    url: '/ai/diagnose',
+    method: 'POST',
+    data: payload,
+    timeout: 90000,
+  })
 }
 
 export const getAiDiagnosisHistory = async () => {
