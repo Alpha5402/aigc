@@ -1,14 +1,25 @@
 <template>
   <view class="page">
     <scroll-view class="page-scroll" scroll-y :show-scrollbar="false">
-      <view class="header">
-        <view>
+      <view class="header header--market">
+        <view class="header__image"></view>
+        <view class="header__shade"></view>
+        <view class="header-toolbar">
+          <UserAvatarButton />
+          <button class="user-notice-bell header-notice" @click="showNotice">
+            <SvgIcon name="bell" :size="20" color="var(--acm-text-inverse)" />
+          </button>
+        </view>
+        <view class="header-copy">
+          <text class="header-eyebrow">农产品价格雷达</text>
           <text class="header-title">行情</text>
           <text class="header-subtitle">山东烟台 · 今天 4月4日</text>
+          <view class="header-pill-row">
+            <text>价格曲线</text>
+            <text>周边市场</text>
+            <text>经营建议</text>
+          </view>
         </view>
-        <button class="user-notice-bell" @click="showNotice">
-          <SvgIcon name="bell" :size="20" color="var(--acm-text-secondary)" />
-        </button>
       </view>
 
       <view v-if="hasNoData" class="content">
@@ -22,6 +33,13 @@
 
       <template v-else>
         <view class="tab-wrap">
+          <view class="tab-wrap__head">
+            <view>
+              <text class="panel-kicker">关注作物</text>
+              <text class="panel-title">快速切换价格对象</text>
+            </view>
+            <text class="panel-count">{{ crops.length }} 项</text>
+          </view>
           <view class="tab-search-row">
             <view class="tab-search-box">
               <SvgIcon name="search" :size="15" color="var(--acm-text-muted)" />
@@ -68,9 +86,13 @@
         </view>
 
         <view class="content">
-        <view class="card">
+        <view class="card price-card">
+          <view class="price-card__grain"></view>
           <view class="card-head">
-            <text class="card-title">{{ selectedCrop.name }} · 今日价格</text>
+            <view class="card-title-wrap">
+              <text class="card-kicker">今日主报价</text>
+              <text class="card-title">{{ selectedCrop.name }} · 今日价格</text>
+            </view>
             <view class="card-actions">
               <button :class="['price-action-btn', 'voice-btn', isPlaying ? 'voice-btn-playing' : '']" @click="handleVoicePlay">
                 {{ isPlaying ? '播放中...' : '语音播报' }}
@@ -81,11 +103,20 @@
             </view>
           </view>
 
-          <view class="stats-grid">
-            <view class="stat-item">
-              <text class="stat-label">当前价</text>
-              <text :class="['stat-value-main', selectedCrop.change >= 0 ? 'up' : 'down']">{{ selectedCrop.currentPrice }}</text>
+          <view class="price-focus">
+            <view>
+              <text class="price-focus__label">当前价</text>
+              <text :class="['price-focus__value', selectedCrop.change >= 0 ? 'up' : 'down']">
+                {{ selectedCrop.currentPrice }}
+              </text>
             </view>
+            <view :class="['price-focus__trend', selectedCrop.change >= 0 ? 'price-focus__trend--up' : 'price-focus__trend--down']">
+              <SvgIcon :name="selectedCrop.change >= 0 ? 'trending-up' : 'trending-down'" :size="16" color="currentColor" />
+              <text>{{ selectedCrop.change >= 0 ? '上涨' : '下跌' }} {{ Math.abs(selectedCrop.change) }}%</text>
+            </view>
+          </view>
+
+          <view class="stats-grid">
             <view class="stat-item">
               <text class="stat-label">均价</text>
               <text class="stat-value">{{ selectedCrop.avgPrice }}</text>
@@ -119,6 +150,7 @@
         <view class="card trend-section">
           <view class="trend-section__head">
             <view class="trend-section__title-wrap">
+              <text class="card-kicker">预测曲线</text>
               <text class="card-title trend-section__title">价格走势</text>
               <text class="trend-section__desc">查看近期价格变化</text>
             </view>
@@ -158,6 +190,7 @@
         <view v-if="marketReport" class="card report-card">
           <view class="card-head report-head">
             <view>
+              <text class="card-kicker">增强解读</text>
               <text class="card-title">{{ marketReport.crop }} · 行情预期报告</text>
               <text class="report-meta">{{ marketReport.region || '未指定地区' }} · {{ formatReportProvider(marketReport.provider) }}</text>
             </view>
@@ -174,7 +207,10 @@
         <view class="section-head">
           <view class="section-title-wrap">
             <SvgIcon name="map-pin" :size="18" color="var(--acm-primary)" />
-            <text class="section-title">周边市场</text>
+            <view>
+              <text class="section-title">周边市场</text>
+              <text class="section-subtitle">就近查看可参考报价</text>
+            </view>
           </view>
         </view>
         <view v-if="nearbyMarkets.length" class="list-wrap">
@@ -199,7 +235,10 @@
         <view class="section-head">
           <view class="section-title-wrap">
             <SvgIcon name="sparkles" :size="18" color="var(--acm-warning)" />
-            <text class="section-title">AI为你推荐</text>
+            <view>
+              <text class="section-title">AI为你推荐</text>
+              <text class="section-subtitle">基于行情与作物档案的经营建议</text>
+            </view>
           </view>
         </view>
 
@@ -259,6 +298,7 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import EmptyState from '../../components/common/EmptyState.vue'
 import StatusChip from '../../components/common/StatusChip.vue'
+import UserAvatarButton from '../../components/common/UserAvatarButton.vue'
 import SvgIcon from '../../components/SvgIcon.vue'
 import BottomNav from '../../components/layout/BottomNav.vue'
 import PriceChart from '../../components/PriceChart.vue'
@@ -465,12 +505,14 @@ const previewSearchCrop = () => {
   const existingCrop = findCropByName(keyword)
   if (existingCrop) {
     selectCrop(existingCrop)
+    searchCropKeyword.value = ''
     uni.showToast({ title: `已切换到 ${existingCrop.name}`, icon: 'none' })
     return
   }
 
   const virtualCrop = createVirtualCrop(keyword)
   selectCrop(virtualCrop)
+  searchCropKeyword.value = ''
   uni.showModal({
     title: '加入关注',
     content: `已为 ${virtualCrop.name} 生成价格走势，是否加入关注列表？`,
@@ -584,31 +626,147 @@ const openRecommendation = (recommendation: RecommendationItem) => {
 }
 
 .header {
-  background: linear-gradient(180deg, var(--acm-bg-card) 0%, var(--acm-info-soft) 100%);
-  border-bottom: 2rpx solid var(--acm-border-soft);
-  padding: calc(96rpx + constant(safe-area-inset-top)) 32rpx 24rpx;
-  padding: calc(96rpx + env(safe-area-inset-top)) 32rpx 24rpx;
+  position: relative;
+  min-height: 318rpx;
+  margin: calc(20rpx + constant(safe-area-inset-top)) 24rpx 20rpx;
+  margin: calc(20rpx + env(safe-area-inset-top)) 24rpx 20rpx;
+  padding: 24rpx;
+  border: 1rpx solid rgba(255, 254, 247, 0.36);
+  border-radius: 8rpx 42rpx 42rpx 42rpx;
+  background: var(--acm-brand-primary-dark);
+  box-shadow: 0 18rpx 42rpx rgba(37, 84, 58, 0.18);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 38rpx;
+  overflow: hidden;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  right: -42rpx;
+  bottom: -30rpx;
+  width: 260rpx;
+  height: 112rpx;
+  border-radius: 999rpx;
+  background:
+    repeating-linear-gradient(100deg, rgba(255, 254, 247, 0.18) 0 2rpx, transparent 2rpx 19rpx),
+    linear-gradient(90deg, transparent, rgba(255, 254, 247, 0.16));
+  transform: rotate(-8deg);
+}
+
+.header__image,
+.header__shade,
+.header-toolbar,
+.header-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.header__image,
+.header__shade {
+  position: absolute;
+  inset: 0;
+}
+
+.header__image {
+  background-image: url('/static/images/page-heroes/market-hero-produce.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.9;
+}
+
+.header__shade {
+  background:
+    linear-gradient(180deg, rgba(23, 47, 30, 0.28) 0%, rgba(23, 47, 30, 0.5) 100%),
+    linear-gradient(105deg, rgba(23, 47, 30, 0.88) 0%, rgba(37, 84, 58, 0.64) 50%, rgba(37, 84, 58, 0.14) 100%);
+}
+
+.header-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 18rpx;
+}
+
+// .header :deep(.user-avatar-button) {
+//   width: 76rpx;
+//   height: 70rpx;
+//   flex-basis: 76rpx;
+//   border-radius: 999rpx;
+//   border-color: rgba(255, 254, 247, 0.82);
+//   background: rgba(255, 254, 249, 0.84);
+//   box-shadow: 0 8rpx 18rpx rgba(21, 44, 30, 0.13);
+// }
+
+.header-notice {
+  width: 70rpx;
+  height: 70rpx;
+  margin: 0;
+  padding: 0;
+  border: 1rpx solid rgba(255, 254, 247, 0.28);
+  border-radius: 22rpx;
+  background: rgba(255, 254, 247, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-notice::after {
+  border: 0;
+}
+
+.header-copy {
+  min-width: 0;
+  max-width: 520rpx;
+}
+
+.header-eyebrow {
+  display: block;
+  width: fit-content;
+  margin-bottom: 12rpx;
+  padding: 7rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 254, 247, 0.18);
+  color: rgba(255, 254, 247, 0.86);
+  font-size: 21rpx;
+  font-weight: 800;
 }
 
 .header-title {
   display: block;
-  font-size: 44rpx;
-  color: var(--acm-text-primary);
+  font-size: 50rpx;
+  color: var(--acm-text-inverse);
+  font-weight: 880;
+  line-height: 1.08;
   margin-bottom: 8rpx;
 }
 
 .header-subtitle {
   display: block;
-  font-size: 26rpx;
-  color: var(--acm-text-muted);
+  font-size: 25rpx;
+  color: rgba(255, 254, 247, 0.82);
+  line-height: 1.45;
 }
 
-.header > view:first-child {
-  min-width: 0;
-  flex: 1;
+.header-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 18rpx;
+}
+
+.header-pill-row text {
+  min-height: 42rpx;
+  padding: 0 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 254, 249, 0.82);
+  color: var(--acm-brand-primary-dark);
+  font-size: 21rpx;
+  font-weight: 800;
+  line-height: 42rpx;
 }
 
 .tab-wrap {
@@ -647,6 +805,11 @@ const openRecommendation = (recommendation: RecommendationItem) => {
   color: var(--acm-text-inverse);
   font-size: 24rpx;
   padding: 14rpx 24rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  line-height: 1;
 }
 
 .crop-tab-scroll {
@@ -1346,30 +1509,6 @@ const openRecommendation = (recommendation: RecommendationItem) => {
   background: var(--acm-bg-app);
 }
 
-.header {
-  position: relative;
-  overflow: hidden;
-  margin: calc(24rpx + constant(safe-area-inset-top)) 24rpx 18rpx;
-  margin: calc(24rpx + env(safe-area-inset-top)) 24rpx 18rpx;
-  padding: 34rpx 30rpx;
-  border-radius: 34rpx;
-  background:
-    linear-gradient(105deg, rgba(37, 84, 58, 0.94) 0%, rgba(54, 125, 73, 0.84) 48%, rgba(54, 125, 73, 0.26) 100%),
-    url('/static/images/field-command/field-market-tomatoes.jpg');
-  background-size: cover;
-  background-position: right center;
-  box-shadow: 0 14rpx 34rpx rgba(37, 84, 58, 0.16);
-}
-
-.header-title,
-.header-subtitle {
-  color: var(--acm-text-inverse);
-}
-
-.header-subtitle {
-  opacity: 0.86;
-}
-
 .tab-wrap,
 .card {
   border-width: 1rpx;
@@ -1407,5 +1546,487 @@ const openRecommendation = (recommendation: RecommendationItem) => {
   background:
     linear-gradient(180deg, rgba(255, 254, 249, 0.9), rgba(230, 241, 244, 0.72));
   border: 1rpx solid rgba(190, 214, 222, 0.62);
+}
+
+/* Market v3: mobile agriculture price board */
+.page {
+  background:
+    radial-gradient(circle at 82% 4%, rgba(214, 168, 58, 0.16), transparent 24%),
+    linear-gradient(180deg, #f6f3ea 0%, #eef6ea 58%, #f6f3ea 100%);
+}
+
+.tab-wrap {
+  position: relative;
+  z-index: 3;
+  margin: -4rpx 24rpx 24rpx;
+  padding: 24rpx;
+  border: 1rpx solid rgba(207, 222, 202, 0.86);
+  border-radius: 30rpx;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(214, 168, 58, 0.1), transparent 28%),
+    rgba(255, 254, 249, 0.96);
+  box-shadow: 0 14rpx 34rpx rgba(64, 84, 62, 0.08);
+  box-sizing: border-box;
+  backdrop-filter: blur(8rpx);
+}
+
+.tab-wrap__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 18rpx;
+}
+
+.panel-kicker,
+.panel-title,
+.panel-count {
+  display: block;
+}
+
+.panel-kicker {
+  color: var(--acm-soil-earth);
+  font-size: 22rpx;
+  font-weight: 820;
+  margin-bottom: 7rpx;
+}
+
+.panel-title {
+  color: var(--acm-text-primary);
+  font-size: 31rpx;
+  font-weight: 860;
+  line-height: 1.18;
+}
+
+.panel-count {
+  min-height: 42rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: var(--acm-brand-primary-soft);
+  color: var(--acm-brand-primary-dark);
+  font-size: 22rpx;
+  font-weight: 850;
+  line-height: 42rpx;
+}
+
+.tab-search-row {
+  gap: 14rpx;
+  margin-bottom: 18rpx;
+}
+
+.tab-search-box {
+  min-height: 74rpx;
+  border: 1rpx solid rgba(200, 222, 197, 0.7);
+  border-radius: 22rpx;
+  background: rgba(255, 254, 249, 0.88);
+  padding: 0 18rpx;
+  box-sizing: border-box;
+}
+
+.tab-search-input {
+  height: 72rpx;
+  font-size: 25rpx;
+}
+
+.tab-search-btn {
+  min-height: 74rpx;
+  margin: 0;
+  border-radius: 22rpx;
+  font-weight: 850;
+  line-height: 1;
+  padding: 0 22rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  box-shadow: 0 8rpx 18rpx rgba(37, 84, 58, 0.14);
+}
+
+.tab-search-btn::after {
+  border: 0;
+}
+
+.crop-tab-row {
+  gap: 14rpx;
+  padding: 2rpx 2rpx 8rpx;
+}
+
+.crop-tab {
+  width: 196rpx;
+  min-height: 168rpx;
+  border: 1rpx solid rgba(200, 222, 197, 0.62);
+  border-radius: 26rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 254, 249, 0.9), rgba(241, 247, 237, 0.84));
+  padding: 20rpx;
+  box-shadow: 0 6rpx 16rpx rgba(64, 84, 62, 0.045);
+  overflow: hidden;
+}
+
+.crop-tab::after {
+  content: '';
+  position: absolute;
+  right: -34rpx;
+  bottom: -26rpx;
+  width: 110rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  background: rgba(54, 125, 73, 0.06);
+  transform: rotate(-16deg);
+}
+
+.crop-tab-active {
+  border-color: rgba(255, 254, 247, 0.35);
+  background:
+    radial-gradient(circle at 88% 12%, rgba(214, 168, 58, 0.2), transparent 28%),
+    linear-gradient(160deg, rgba(54, 125, 73, 0.96), rgba(37, 84, 58, 0.98));
+  box-shadow: 0 12rpx 26rpx rgba(37, 84, 58, 0.18);
+  transform: translateY(-2rpx);
+}
+
+.crop-name,
+.crop-price,
+.crop-change {
+  position: relative;
+  z-index: 1;
+}
+
+.crop-name {
+  font-size: 27rpx;
+  font-weight: 820;
+}
+
+.crop-price {
+  font-weight: 880;
+}
+
+.owned-note {
+  margin-top: 8rpx;
+}
+
+.card {
+  position: relative;
+  border: 1rpx solid rgba(207, 222, 202, 0.86);
+  border-radius: 30rpx;
+  background: linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(248, 251, 245, 0.96));
+  padding: 28rpx;
+  margin-bottom: 22rpx;
+  box-shadow: 0 8rpx 22rpx rgba(64, 84, 62, 0.055);
+  box-sizing: border-box;
+}
+
+.card-head {
+  align-items: flex-start;
+  margin-bottom: 24rpx;
+}
+
+.card-title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.card-kicker {
+  display: block;
+  color: var(--acm-soil-earth);
+  font-size: 22rpx;
+  font-weight: 820;
+  margin-bottom: 8rpx;
+}
+
+.card-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 860;
+  line-height: 1.24;
+}
+
+.price-card .card-head {
+  align-items: flex-start;
+  gap: 18rpx;
+}
+
+.price-card .card-title-wrap {
+  min-width: 0;
+  flex: 1;
+  padding-right: 8rpx;
+}
+
+.price-card .card-actions {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 292rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12rpx;
+}
+
+.price-card .price-action-btn {
+  width: auto;
+  min-width: 132rpx;
+  min-height: 60rpx;
+  margin: 0;
+  padding: 0 16rpx;
+  font-size: 22rpx;
+  line-height: 1;
+  white-space: nowrap;
+  word-break: keep-all;
+  flex-shrink: 0;
+}
+
+.price-card {
+  border-radius: 34rpx;
+  background:
+    radial-gradient(circle at 100% 4%, rgba(214, 168, 58, 0.13), transparent 32%),
+    linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(241, 247, 237, 0.96));
+}
+
+.price-card__grain {
+  position: absolute;
+  right: -42rpx;
+  top: 110rpx;
+  width: 240rpx;
+  height: 110rpx;
+  border-radius: 999rpx;
+  background:
+    repeating-linear-gradient(100deg, rgba(122, 101, 72, 0.08) 0 2rpx, transparent 2rpx 18rpx),
+    linear-gradient(90deg, transparent, rgba(255, 254, 249, 0.64));
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.price-focus {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 22rpx;
+  padding: 24rpx;
+  border: 1rpx solid rgba(200, 222, 197, 0.66);
+  border-radius: 28rpx;
+  background: rgba(255, 254, 249, 0.78);
+  box-sizing: border-box;
+}
+
+.price-focus__label,
+.price-focus__value {
+  display: block;
+}
+
+.price-focus__label {
+  color: var(--acm-text-secondary);
+  font-size: 23rpx;
+  margin-bottom: 8rpx;
+}
+
+.price-focus__value {
+  font-size: 62rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.price-focus__trend {
+  flex: 0 0 auto;
+  min-height: 52rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 23rpx;
+  font-weight: 850;
+}
+
+.price-focus__trend--up {
+  background: var(--acm-price-up-soft);
+  color: var(--acm-price-up-text);
+}
+
+.price-focus__trend--down {
+  background: var(--acm-price-down-soft);
+  color: var(--acm-price-down-text);
+}
+
+.stats-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.stat-item {
+  width: auto;
+  min-width: 0;
+  min-height: 106rpx;
+  border: 1rpx solid rgba(200, 222, 197, 0.58);
+  border-radius: 22rpx;
+  background: rgba(255, 254, 249, 0.72);
+  padding: 16rpx 12rpx;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.stat-label {
+  margin-bottom: 10rpx;
+}
+
+.stat-value {
+  font-size: 32rpx;
+  font-weight: 860;
+  line-height: 1.16;
+}
+
+.meta-line {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 12rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid rgba(190, 214, 222, 0.56);
+  border-radius: 22rpx;
+  background: rgba(230, 241, 244, 0.58);
+}
+
+.meta-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+}
+
+.meta-cell {
+  width: auto;
+  min-width: 0;
+  border: 1rpx solid rgba(200, 222, 197, 0.58);
+  border-radius: 22rpx;
+  background: rgba(255, 254, 249, 0.7);
+  padding: 18rpx;
+}
+
+.trend-section {
+  background:
+    radial-gradient(circle at 96% 8%, rgba(111, 167, 189, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(246, 250, 242, 0.96));
+}
+
+.price-chart-container {
+  margin-bottom: 18rpx;
+  border-radius: 26rpx;
+  padding: 12rpx 8rpx;
+  box-sizing: border-box;
+}
+
+.forecast-state {
+  border: 1rpx solid rgba(190, 214, 222, 0.58);
+  background:
+    radial-gradient(circle at 50% 16%, rgba(111, 167, 189, 0.13), transparent 34%),
+    rgba(255, 254, 249, 0.72);
+}
+
+.insight {
+  border-width: 1rpx;
+  padding: 22rpx;
+}
+
+.report-card {
+  border-color: rgba(186, 219, 189, 0.92);
+  background:
+    radial-gradient(circle at 96% 0%, rgba(54, 125, 73, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(238, 247, 236, 0.94));
+}
+
+.section-head {
+  margin: 8rpx 8rpx 18rpx;
+}
+
+.section-title-wrap {
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.section-title {
+  display: block;
+  font-weight: 860;
+  line-height: 1.2;
+}
+
+.section-subtitle {
+  display: block;
+  margin-top: 7rpx;
+  color: var(--acm-text-secondary);
+  font-size: 23rpx;
+  line-height: 1.35;
+}
+
+.market-item {
+  position: relative;
+  border: 1rpx solid rgba(200, 222, 197, 0.66);
+  background:
+    linear-gradient(180deg, rgba(255, 254, 249, 0.96), rgba(248, 251, 245, 0.92));
+  border-radius: 26rpx;
+  box-shadow: 0 6rpx 18rpx rgba(64, 84, 62, 0.045);
+  overflow: hidden;
+}
+
+.market-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22rpx;
+  bottom: 22rpx;
+  width: 6rpx;
+  border-radius: 999rpx;
+  background: var(--acm-brand-primary);
+}
+
+.market-price {
+  font-size: 38rpx;
+  font-weight: 880;
+}
+
+.rec-card {
+  position: relative;
+  border: 1rpx solid rgba(207, 222, 202, 0.86);
+  background:
+    radial-gradient(circle at 96% 0%, rgba(214, 168, 58, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(248, 251, 245, 0.94));
+  border-radius: 30rpx;
+  padding: 28rpx;
+  box-shadow: 0 8rpx 22rpx rgba(64, 84, 62, 0.055);
+}
+
+.rec-tag {
+  border-radius: 999rpx;
+}
+
+.rec-title {
+  font-size: 34rpx;
+  font-weight: 860;
+  line-height: 1.25;
+}
+
+.rec-reason {
+  border: 1rpx solid rgba(200, 222, 197, 0.58);
+  background: rgba(238, 247, 236, 0.72);
+  border-radius: 18rpx;
+}
+
+.benefit-list {
+  border: 1rpx solid rgba(200, 222, 197, 0.56);
+  background: rgba(255, 254, 249, 0.72);
+}
+
+.rec-footer {
+  border: 1rpx solid rgba(200, 222, 197, 0.62);
+  background:
+    linear-gradient(135deg, rgba(231, 243, 231, 0.92), rgba(255, 254, 249, 0.78));
+}
+
+.detail-btn {
+  min-height: 60rpx;
 }
 </style>

@@ -131,26 +131,51 @@ const startVoice = async () => {
   background: var(--acm-neutral-soft);
   color: var(--acm-text-secondary);
   font-size: 34rpx;
-  line-height: 56rpx;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.close-btn::after {
+  border: 0;
+}
+
+.close-btn text {
+  display: block;
+  line-height: 1;
+  transform: translateY(-1rpx);
 }
 
 .quick-row {
   display: flex;
   gap: 10rpx;
   overflow-x: auto;
-  padding: 6rpx 0 14rpx;
+  padding: 8rpx 2rpx 16rpx;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .quick-btn {
   flex: 0 0 auto;
-  height: 60rpx;
+  height: 62rpx;
   padding: 0 22rpx;
-  border: 0;
+  border: 1rpx solid rgba(54, 125, 73, 0.16);
   border-radius: 999rpx;
-  background: #ecfdf5;
+  background: linear-gradient(180deg, rgba(255, 254, 249, 0.96), #ecfdf5);
   color: var(--acm-brand-primary);
   font-size: 24rpx;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  box-shadow: 0 4rpx 10rpx rgba(31, 42, 35, 0.04);
+}
+
+.quick-btn::after {
+  border: 0;
 }
 
 .input-row {
@@ -168,6 +193,11 @@ const startVoice = async () => {
   border-radius: 999rpx;
   font-size: 25rpx;
   font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .voice-btn {

@@ -1,14 +1,25 @@
 <template>
   <view class="page">
     <scroll-view class="page-scroll" scroll-y :show-scrollbar="false">
-      <view class="header">
-        <view>
+      <view class="header header--ads">
+        <view class="header__image"></view>
+        <view class="header__shade"></view>
+        <view class="header-toolbar">
+          <UserAvatarButton />
+          <button class="user-notice-bell header-notice" @click="showNotice">
+            <SvgIcon name="bell" :size="20" color="var(--acm-text-inverse)" />
+          </button>
+        </view>
+        <view class="header-copy">
+          <text class="header-eyebrow">丰收素材工作台</text>
           <text class="header-title">营销助手</text>
           <text class="header-subtitle">农产品推广文案与询价话术</text>
+          <view class="header-pill-row">
+            <text>真实卖点</text>
+            <text>素材包</text>
+            <text>合规提醒</text>
+          </view>
         </view>
-        <button class="user-notice-bell" @click="showNotice">
-          <SvgIcon name="bell" :size="20" color="var(--acm-text-secondary)" />
-        </button>
       </view>
 
       <view class="content">
@@ -221,7 +232,9 @@
             <text class="product-modal__title">全部待推广产品</text>
             <text class="product-modal__subtitle">选择一个产品作为当前素材包生成对象</text>
           </view>
-          <button class="product-modal__close" @click="closeProductModal">关闭</button>
+          <button class="product-modal__close" aria-label="关闭" @click="closeProductModal">
+            <text>×</text>
+          </button>
         </view>
 
         <scroll-view class="product-modal__list" scroll-y :show-scrollbar="false">
@@ -258,6 +271,7 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppButton from '../../components/common/AppButton.vue'
 import EmptyState from '../../components/common/EmptyState.vue'
+import UserAvatarButton from '../../components/common/UserAvatarButton.vue'
 import SvgIcon from '../../components/SvgIcon.vue'
 import BottomNav from '../../components/layout/BottomNav.vue'
 import AssistantFloat from '../../components/assistant/AssistantFloat.vue'
@@ -565,31 +579,147 @@ const showNotice = () => {
 }
 
 .header {
-  background: var(--acm-bg-card);
-  border-bottom: 2rpx solid var(--acm-border-soft);
-  padding: calc(96rpx + constant(safe-area-inset-top)) 32rpx 24rpx;
-  padding: calc(96rpx + env(safe-area-inset-top)) 32rpx 24rpx;
+  position: relative;
+  min-height: 318rpx;
+  margin: calc(20rpx + constant(safe-area-inset-top)) 24rpx 20rpx;
+  margin: calc(20rpx + env(safe-area-inset-top)) 24rpx 20rpx;
+  padding: 24rpx;
+  border: 1rpx solid rgba(255, 254, 247, 0.36);
+  border-radius: 8rpx 42rpx 42rpx 42rpx;
+  background: var(--acm-brand-primary-dark);
+  box-shadow: 0 18rpx 42rpx rgba(37, 84, 58, 0.18);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 38rpx;
+  overflow: hidden;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  right: -44rpx;
+  bottom: -28rpx;
+  width: 270rpx;
+  height: 118rpx;
+  border-radius: 999rpx;
+  background:
+    repeating-linear-gradient(100deg, rgba(255, 254, 247, 0.2) 0 2rpx, transparent 2rpx 20rpx),
+    linear-gradient(90deg, transparent, rgba(255, 254, 247, 0.16));
+  transform: rotate(-8deg);
+}
+
+.header__image,
+.header__shade,
+.header-toolbar,
+.header-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.header__image,
+.header__shade {
+  position: absolute;
+  inset: 0;
+}
+
+.header__image {
+  background-image: url('/static/images/page-heroes/ads-hero-produce.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.9;
+}
+
+.header__shade {
+  background:
+    linear-gradient(180deg, rgba(23, 47, 30, 0.24) 0%, rgba(23, 47, 30, 0.52) 100%),
+    linear-gradient(105deg, rgba(23, 47, 30, 0.9) 0%, rgba(69, 84, 42, 0.66) 52%, rgba(173, 90, 30, 0.18) 100%);
+}
+
+.header-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 18rpx;
+}
+
+// .header :deep(.user-avatar-button) {
+//   width: 76rpx;
+//   height: 70rpx;
+//   flex-basis: 76rpx;
+//   border-radius: 999rpx;
+//   border-color: rgba(255, 254, 247, 0.82);
+//   background: rgba(255, 254, 249, 0.84);
+//   box-shadow: 0 8rpx 18rpx rgba(21, 44, 30, 0.13);
+// }
+
+.header-notice {
+  width: 70rpx;
+  height: 70rpx;
+  margin: 0;
+  padding: 0;
+  border: 1rpx solid rgba(255, 254, 247, 0.28);
+  border-radius: 22rpx;
+  background: rgba(255, 254, 247, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-notice::after {
+  border: 0;
+}
+
+.header-copy {
+  min-width: 0;
+  max-width: 540rpx;
+}
+
+.header-eyebrow {
+  display: block;
+  width: fit-content;
+  margin-bottom: 12rpx;
+  padding: 7rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 254, 247, 0.18);
+  color: rgba(255, 254, 247, 0.86);
+  font-size: 21rpx;
+  font-weight: 800;
 }
 
 .header-title {
   display: block;
-  font-size: 44rpx;
-  color: var(--acm-text-primary);
+  font-size: 50rpx;
+  color: var(--acm-text-inverse);
+  font-weight: 880;
+  line-height: 1.08;
   margin-bottom: 8rpx;
 }
 
 .header-subtitle {
   display: block;
-  font-size: 26rpx;
-  color: var(--acm-text-muted);
+  font-size: 25rpx;
+  color: rgba(255, 254, 247, 0.82);
+  line-height: 1.45;
 }
 
-.header > view:first-child {
-  min-width: 0;
-  flex: 1;
+.header-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 18rpx;
+}
+
+.header-pill-row text {
+  min-height: 42rpx;
+  padding: 0 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 254, 249, 0.82);
+  color: var(--acm-brand-primary-dark);
+  font-size: 21rpx;
+  font-weight: 800;
+  line-height: 42rpx;
 }
 
 .content {
@@ -882,6 +1012,8 @@ const showNotice = () => {
   justify-content: space-between;
   gap: 18rpx;
   margin-bottom: 20rpx;
+  padding-right: 64rpx;
+  position: relative;
 }
 
 .product-modal__title,
@@ -902,19 +1034,34 @@ const showNotice = () => {
 }
 
 .product-modal__close {
-  flex: 0 0 auto;
-  min-height: 48rpx;
-  padding: 0 18rpx;
-  border: 1rpx solid rgba(54, 125, 73, 0.18);
-  border-radius: 999rpx;
-  background: var(--acm-bg-card);
-  color: var(--acm-primary);
-  font-size: 22rpx;
+  position: absolute;
+  top: -4rpx;
+  right: 0;
+  width: 52rpx;
+  height: 52rpx;
+  margin: 0;
+  padding: 0;
+  border: 1rpx solid rgba(54, 125, 73, 0.16);
+  border-radius: 50%;
+  background: rgba(255, 254, 249, 0.94);
+  color: var(--acm-text-secondary);
+  font-size: 34rpx;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  box-shadow: 0 6rpx 16rpx rgba(31, 42, 35, 0.06);
 }
 
 .product-modal__close::after {
   border: 0;
+}
+
+.product-modal__close text {
+  display: block;
+  line-height: 1;
+  transform: translateY(-1rpx);
 }
 
 .product-modal__list {
@@ -1122,30 +1269,6 @@ const showNotice = () => {
   background: var(--acm-bg-app);
 }
 
-.header {
-  position: relative;
-  overflow: hidden;
-  margin: calc(24rpx + constant(safe-area-inset-top)) 24rpx 18rpx;
-  margin: calc(24rpx + env(safe-area-inset-top)) 24rpx 18rpx;
-  padding: 34rpx 30rpx;
-  border-radius: 34rpx;
-  background:
-    linear-gradient(105deg, rgba(37, 84, 58, 0.94) 0%, rgba(54, 125, 73, 0.74) 52%, rgba(173, 90, 30, 0.24) 100%),
-    url('/static/images/field-command/field-market-tomatoes.jpg');
-  background-size: cover;
-  background-position: right center;
-  box-shadow: 0 14rpx 34rpx rgba(37, 84, 58, 0.15);
-}
-
-.header-title,
-.header-subtitle {
-  color: var(--acm-text-inverse);
-}
-
-.header-subtitle {
-  opacity: 0.86;
-}
-
 .card,
 .material-card,
 .product-card {
@@ -1160,10 +1283,9 @@ const showNotice = () => {
   overflow: hidden;
   border: 1rpx solid rgba(226, 211, 173, 0.7);
   background:
-    linear-gradient(105deg, rgba(255, 254, 249, 0.98) 0%, rgba(255, 254, 249, 0.9) 62%, rgba(255, 254, 249, 0.5) 100%),
-    url('/static/images/field-command/field-market-tomatoes.jpg');
-  background-size: cover;
-  background-position: right center;
+    radial-gradient(circle at 92% 14%, rgba(214, 168, 58, 0.18), transparent 30%),
+    repeating-linear-gradient(100deg, rgba(122, 101, 72, 0.08) 0 2rpx, transparent 2rpx 19rpx),
+    linear-gradient(105deg, rgba(255, 254, 249, 0.98) 0%, rgba(250, 247, 234, 0.94) 62%, rgba(238, 247, 236, 0.88) 100%);
 }
 
 .hero-mark {

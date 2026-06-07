@@ -29,6 +29,23 @@
 			}
 		},
 		{
+			"path": "pages/profile/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "个人中心"
+			}
+		},
+		{
+			"path": "pages/profile/edit",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "修改个人档案",
+				"app-plus": {
+					"softinputMode": "adjustResize"
+				}
+			}
+		},
+		{
 			"path": "pages/add-crop/index",
 			"style": {
 				"navigationStyle": "custom",

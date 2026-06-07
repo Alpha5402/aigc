@@ -1,15 +1,24 @@
 <template>
   <view class="page">
     <scroll-view class="page-scroll" scroll-y :show-scrollbar="false">
-      <view class="header">
-        <view>
+      <view class="header header--buyer">
+        <view class="header__image"></view>
+        <view class="header__shade"></view>
+        <view class="header-toolbar">
+          <UserAvatarButton />
+          <button class="user-notice-bell header-notice" @click="showNotice">
+            <SvgIcon name="bell" :size="20" color="var(--acm-text-inverse)" />
+          </button>
+        </view>
+        <view class="header-copy">
+          <text class="header-eyebrow">供需撮合工作台</text>
           <text class="header-title">销路匹配</text>
           <text class="header-subtitle">根据作物、地区和需求，推荐合适收购方</text>
-        </view>
-        <view class="header-actions">
-          <button class="user-notice-bell" @click="showNotice">
-            <SvgIcon name="bell" :size="20" color="var(--acm-text-secondary)" />
-          </button>
+          <view class="header-pill-row">
+            <text>待售产品</text>
+            <text>报价测算</text>
+            <text>意向商户</text>
+          </view>
         </view>
       </view>
 
@@ -183,6 +192,7 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import EmptyState from '../../components/common/EmptyState.vue'
+import UserAvatarButton from '../../components/common/UserAvatarButton.vue'
 import SvgIcon from '../../components/SvgIcon.vue'
 import BottomNav from '../../components/layout/BottomNav.vue'
 import AssistantFloat from '../../components/assistant/AssistantFloat.vue'
@@ -552,37 +562,147 @@ const goMyProducts = () => {
 }
 
 .header {
-  background: linear-gradient(180deg, var(--acm-bg-card) 0%, var(--acm-harvest-gold-soft) 100%);
-  border-bottom: 2rpx solid var(--acm-border-soft);
-  padding: calc(96rpx + constant(safe-area-inset-top)) 32rpx 24rpx;
-  padding: calc(96rpx + env(safe-area-inset-top)) 32rpx 24rpx;
+  position: relative;
+  min-height: 318rpx;
+  margin: calc(20rpx + constant(safe-area-inset-top)) 24rpx 20rpx;
+  margin: calc(20rpx + env(safe-area-inset-top)) 24rpx 20rpx;
+  padding: 24rpx;
+  border: 1rpx solid rgba(255, 254, 247, 0.36);
+  border-radius: 8rpx 42rpx 42rpx 42rpx;
+  background: var(--acm-brand-primary-dark);
+  box-shadow: 0 18rpx 42rpx rgba(37, 84, 58, 0.18);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 38rpx;
+  overflow: hidden;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  right: -34rpx;
+  bottom: -26rpx;
+  width: 280rpx;
+  height: 124rpx;
+  border-radius: 999rpx;
+  background:
+    repeating-linear-gradient(96deg, rgba(255, 254, 247, 0.2) 0 2rpx, transparent 2rpx 18rpx),
+    linear-gradient(90deg, transparent, rgba(255, 254, 247, 0.16));
+  transform: rotate(-7deg);
+}
+
+.header__image,
+.header__shade,
+.header-toolbar,
+.header-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.header__image,
+.header__shade {
+  position: absolute;
+  inset: 0;
+}
+
+.header__image {
+  background-image: url('/static/images/page-heroes/buyer-hero-vendors.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.88;
+}
+
+.header__shade {
+  background:
+    linear-gradient(180deg, rgba(23, 47, 30, 0.26) 0%, rgba(23, 47, 30, 0.52) 100%),
+    linear-gradient(105deg, rgba(23, 47, 30, 0.9) 0%, rgba(54, 81, 43, 0.68) 48%, rgba(173, 90, 30, 0.16) 100%);
+}
+
+.header-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 18rpx;
 }
 
-.header > view:first-child {
+// .header :deep(.user-avatar-button) {
+//   width: 76rpx;
+//   height: 70rpx;
+//   flex-basis: 76rpx;
+//   border-radius: 999rpx;
+//   border-color: rgba(255, 254, 247, 0.82);
+//   background: rgba(255, 254, 249, 0.84);
+//   box-shadow: 0 8rpx 18rpx rgba(21, 44, 30, 0.13);
+// }
+
+.header-notice {
+  width: 70rpx;
+  height: 70rpx;
+  margin: 0;
+  padding: 0;
+  border: 1rpx solid rgba(255, 254, 247, 0.28);
+  border-radius: 22rpx;
+  background: rgba(255, 254, 247, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-notice::after {
+  border: 0;
+}
+
+.header-copy {
   min-width: 0;
-  flex: 1;
+  max-width: 540rpx;
+}
+
+.header-eyebrow {
+  display: block;
+  width: fit-content;
+  margin-bottom: 12rpx;
+  padding: 7rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 254, 247, 0.18);
+  color: rgba(255, 254, 247, 0.86);
+  font-size: 21rpx;
+  font-weight: 800;
 }
 
 .header-title {
   display: block;
-  font-size: 44rpx;
-  color: var(--acm-text-primary);
+  font-size: 50rpx;
+  color: var(--acm-text-inverse);
+  font-weight: 880;
+  line-height: 1.08;
   margin-bottom: 8rpx;
 }
 
 .header-subtitle {
   display: block;
-  font-size: 26rpx;
-  color: var(--acm-text-muted);
+  font-size: 25rpx;
+  color: rgba(255, 254, 247, 0.82);
+  line-height: 1.45;
 }
 
-.header-actions {
+.header-pill-row {
   display: flex;
-  align-items: center;
-  gap: 16rpx;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 18rpx;
+}
+
+.header-pill-row text {
+  min-height: 42rpx;
+  padding: 0 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 254, 249, 0.82);
+  color: var(--acm-brand-primary-dark);
+  font-size: 21rpx;
+  font-weight: 800;
+  line-height: 42rpx;
 }
 
 .content {
@@ -1015,30 +1135,6 @@ const goMyProducts = () => {
 /* Round 2 visual convergence: supply-demand command cards */
 .page {
   background: var(--acm-bg-app);
-}
-
-.header {
-  position: relative;
-  overflow: hidden;
-  margin: calc(24rpx + constant(safe-area-inset-top)) 24rpx 18rpx;
-  margin: calc(24rpx + env(safe-area-inset-top)) 24rpx 18rpx;
-  padding: 34rpx 30rpx;
-  border-radius: 34rpx;
-  background:
-    linear-gradient(105deg, rgba(37, 84, 58, 0.95) 0%, rgba(54, 125, 73, 0.82) 50%, rgba(54, 125, 73, 0.2) 100%),
-    url('/static/images/field-command/field-hero-cabbage.jpg');
-  background-size: cover;
-  background-position: center 62%;
-  box-shadow: 0 14rpx 34rpx rgba(37, 84, 58, 0.16);
-}
-
-.header-title,
-.header-subtitle {
-  color: var(--acm-text-inverse);
-}
-
-.header-subtitle {
-  opacity: 0.86;
 }
 
 .card,

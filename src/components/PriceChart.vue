@@ -47,22 +47,49 @@ const props = withDefaults(defineProps<Props>(), {
 const chartId = `acm-chart-${Math.random().toString(36).slice(2, 10)}`
 
 const calcAxisBounds = (values: number[]) => {
-  const minValue = Math.min(...values)
-  const maxValue = Math.max(...values)
-  const padding = maxValue === minValue ? 0.3 : Math.max(0.2, (maxValue - minValue) * 0.15)
+  const finiteValues = values.filter((value) => Number.isFinite(value))
+  const sourceValues = finiteValues.length ? finiteValues : [0]
+  const minValue = Math.min(...sourceValues)
+  const maxValue = Math.max(...sourceValues)
+  const center = (minValue + maxValue) / 2
+  const rawRange = maxValue - minValue
+  const relativeRange = Math.abs(center) > 0 ? rawRange / Math.abs(center) : rawRange
+
+  let visibleRange = rawRange
+  if (rawRange === 0) {
+    visibleRange = Math.max(Math.abs(center) * 0.04, 0.6)
+  } else if (relativeRange < 0.015) {
+    visibleRange = Math.max(rawRange * 3.2, Math.abs(center) * 0.025, 0.4)
+  } else if (relativeRange < 0.04) {
+    visibleRange = Math.max(rawRange * 2.2, Math.abs(center) * 0.04, 0.5)
+  } else if (relativeRange < 0.1) {
+    visibleRange = rawRange * 1.55
+  } else {
+    visibleRange = rawRange * 1.25
+  }
+
+  const yMin = center - visibleRange / 2
+  const yMax = center + visibleRange / 2
 
   return {
-    min: Math.floor((minValue - padding) * 10) / 10,
-    max: Math.ceil((maxValue + padding) * 10) / 10,
+    min: Math.max(0, Math.floor(yMin * 10) / 10),
+    max: Math.ceil(yMax * 10) / 10,
   }
 }
 
 const lineValues = computed(() => {
   const values = props.points.map((item) => Number(item.price)).filter((value) => Number.isFinite(value))
-  if (Number.isFinite(props.basePrice)) {
-    values.push(Number(props.basePrice))
-  }
   return values.length ? values : [0]
+})
+
+const isLineFlat = computed(() => {
+  const values = lineValues.value.filter((value) => Number.isFinite(value))
+  if (values.length < 2) return true
+  const minValue = Math.min(...values)
+  const maxValue = Math.max(...values)
+  const center = (minValue + maxValue) / 2
+  const range = maxValue - minValue
+  return range <= Math.max(Math.abs(center) * 0.002, 0.03)
 })
 
 const barValues = computed(() => {
@@ -88,6 +115,7 @@ const renderPayload = computed(() => ({
   thisWeekData: props.comparisonPoints.map((item) => Number(item.thisWeek)),
   yMin: props.mode === 'bar' ? barBounds.value.min : lineBounds.value.min,
   yMax: props.mode === 'bar' ? barBounds.value.max : lineBounds.value.max,
+  isLineFlat: isLineFlat.value,
 }))
 </script>
 
@@ -106,6 +134,13 @@ const disposeChart = (chartId) => {
 
 const buildLineOption = (payload) => {
   const hasCI = payload.ci80LData && payload.ci80LData.some((v) => v != null)
+  const validPrices = (payload.lineData || []).map(Number).filter((v) => Number.isFinite(v))
+  const avgPrice = validPrices.length
+    ? validPrices.reduce((sum, value) => sum + value, 0) / validPrices.length
+    : 0
+  const stableBand = Math.max(Math.abs(avgPrice) * 0.008, 0.08)
+  const axisRange = Number(payload.yMax) - Number(payload.yMin)
+  const axisDecimals = axisRange <= 1 ? 2 : 1
   const series = []
 
   if (hasCI) {
@@ -140,14 +175,15 @@ const buildLineOption = (payload) => {
     smooth: true,
     showSymbol: true,
     symbol: 'circle',
-    symbolSize: 6,
+    symbolSize: payload.isLineFlat ? 9 : 6,
     lineStyle: {
       color: '#52a355',
-      width: 2,
+      width: payload.isLineFlat ? 3 : 2,
     },
     itemStyle: {
       color: '#52a355',
-      borderWidth: 0,
+      borderColor: '#ffffff',
+      borderWidth: payload.isLineFlat ? 2 : 0,
     },
     areaStyle: hasCI ? undefined : {
       color: {
@@ -162,6 +198,33 @@ const buildLineOption = (payload) => {
         ],
       },
     },
+    markArea: payload.isLineFlat ? {
+      silent: true,
+      itemStyle: {
+        color: 'rgba(214,168,58,0.12)',
+      },
+      data: [[
+        { yAxis: Number((avgPrice - stableBand).toFixed(2)) },
+        { yAxis: Number((avgPrice + stableBand).toFixed(2)) },
+      ]],
+    } : undefined,
+    markLine: payload.isLineFlat ? {
+      silent: true,
+      symbol: 'none',
+      lineStyle: {
+        color: 'rgba(122,101,72,0.42)',
+        width: 1,
+        type: 'dashed',
+      },
+      label: {
+        show: true,
+        formatter: '平稳',
+        color: '#7a6548',
+        fontSize: 11,
+        position: 'insideEndTop',
+      },
+      data: [{ yAxis: Number(avgPrice.toFixed(2)) }],
+    } : undefined,
     emphasis: {
       itemStyle: {
         color: '#52a355',
@@ -236,7 +299,7 @@ const buildLineOption = (payload) => {
       axisLabel: {
         color: '#999999',
         fontSize: 11,
-        formatter: (value) => Number(value).toFixed(1),
+        formatter: (value) => Number(value).toFixed(axisDecimals),
       },
       axisLine: {
         show: false,

@@ -9,9 +9,12 @@
         </view>
 
         <view class="field-hero__nav">
-          <view>
-            <text class="field-hero__eyebrow">云上农管家 · 农场中控</text>
-            <text class="field-hero__title">我的地</text>
+          <view class="field-hero__identity">
+            <UserAvatarButton />
+            <view class="field-hero__title-wrap">
+              <text class="field-hero__eyebrow">云上农管家 · 农场中控</text>
+              <text class="field-hero__title">我的地</text>
+            </view>
           </view>
           <button class="user-notice-bell acm-touchable" @click="showNotice">
             <SvgIcon name="bell" :size="20" color="var(--acm-text-secondary)" />
@@ -209,6 +212,7 @@ import EmptyState from '../../components/common/EmptyState.vue'
 import LoadingSkeleton from '../../components/common/LoadingSkeleton.vue'
 import SectionHeader from '../../components/common/SectionHeader.vue'
 import StatusChip from '../../components/common/StatusChip.vue'
+import UserAvatarButton from '../../components/common/UserAvatarButton.vue'
 import FarmPatternCanvas from '../../components/visual/FarmPatternCanvas.vue'
 import SvgIcon from '../../components/SvgIcon.vue'
 import BottomNav from '../../components/layout/BottomNav.vue'
@@ -502,7 +506,15 @@ const confirmRemoveCrop = (crop: CropInfo) => {
   gap: 24rpx;
 }
 
-.field-hero__nav > view {
+.field-hero__identity {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 18rpx;
+}
+
+.field-hero__title-wrap {
   min-width: 0;
   flex: 1;
 }

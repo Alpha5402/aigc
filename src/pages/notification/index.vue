@@ -28,19 +28,17 @@
         </view>
       </view>
 
-      <scroll-view class="tabs-scroll notice-filter-scroll" scroll-x>
-        <view class="tabs notice-filter">
-          <view
-            v-for="tab in tabs"
-            :key="tab.key"
-            :class="['tab-item', 'notice-filter__item', activeTab === tab.key ? 'tab-item-active notice-filter__item--active' : '']"
-            @click="switchTab(tab.key)"
-          >
-            <text>{{ tab.label }}</text>
-            <text v-if="tab.count > 0" class="tab-count">{{ tab.count > 99 ? '99+' : tab.count }}</text>
-          </view>
+      <view class="tabs notice-filter">
+        <view
+          v-for="tab in tabs"
+          :key="tab.key"
+          :class="['tab-item', 'notice-filter__item', activeTab === tab.key ? 'tab-item-active notice-filter__item--active' : '']"
+          @click="switchTab(tab.key)"
+        >
+          <text class="tab-label">{{ tab.label }}</text>
+          <text v-if="tab.count > 0" class="tab-count">{{ tab.count > 99 ? '99+' : tab.count }}</text>
         </view>
-      </scroll-view>
+      </view>
 
       <scroll-view class="list-scroll" scroll-y>
         <view class="list-content">
@@ -321,35 +319,31 @@ const goBack = () => {
   justify-content: center;
 }
 
-.tabs-scroll {
-  width: 100%;
-  white-space: nowrap;
-}
-
 .tabs {
-  display: inline-flex;
-  min-width: calc(100% - var(--acm-space-page-x) * 2);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: calc(100% - var(--acm-space-page-x) * 2);
   padding: 8rpx;
   margin: 0 var(--acm-space-page-x) 24rpx;
   box-sizing: border-box;
 }
 
 .tab-item {
-  flex: 1;
-  min-width: 136rpx;
-  min-height: 56rpx;
-  padding: 0 18rpx;
+  min-width: 0;
+  height: 58rpx;
+  padding: 0 12rpx;
   border-radius: 999rpx;
   border: 0;
   background: transparent;
   color: var(--acm-text-secondary);
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
+  gap: 6rpx;
   font-size: 24rpx;
   font-weight: 700;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tab-item-active {
@@ -358,17 +352,28 @@ const goBack = () => {
   box-shadow: 0 6rpx 16rpx rgba(31, 42, 35, 0.06);
 }
 
+.tab-label {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tab-count {
-  min-width: 32rpx;
-  height: 32rpx;
-  padding: 0 8rpx;
+  flex: 0 0 auto;
+  min-width: 28rpx;
+  height: 28rpx;
+  padding: 0 7rpx;
   border-radius: var(--acm-radius-pill);
   background: var(--acm-warning-soft);
   color: var(--acm-warning-text);
-  font-size: 20rpx;
+  font-size: 18rpx;
+  line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .tab-item-active .tab-count {
@@ -377,7 +382,7 @@ const goBack = () => {
 }
 
 .notice-filter {
-  border-radius: 999rpx;
+  border-radius: 30rpx;
   background: rgba(54, 125, 73, 0.08);
   gap: 8rpx;
 }
