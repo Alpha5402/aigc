@@ -1,10 +1,13 @@
 const crypto = require('node:crypto')
+const fs = require('node:fs')
+const path = require('node:path')
 const express = require('express')
+const sharp = require('sharp')
 const { loadEnv } = require('./lib/env')
 
 loadEnv()
 
-const { db, initDb, initForecastDb, nowIso, resetDemoData } = require('./lib/db')
+const { db, initDb, initForecastDb, nowIso, resetDemoData, ensureColumn } = require('./lib/db')
 const jwt = require('./lib/jwt')
 const {
   mockCrops,
@@ -37,12 +40,15 @@ const AMAP_DEFAULT_ADCODE = String(process.env.AMAP_DEFAULT_ADCODE || '370602').
 const WEATHER_CACHE_TTL_MINUTES = Number(process.env.WEATHER_CACHE_TTL_MINUTES || 30)
 const OSS_MAX_SIZE = Number(process.env.OSS_MAX_SIZE_MB || 10) * 1024 * 1024
 const OSS_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const LOCAL_AVATAR_MAX_SIZE = 2 * 1024 * 1024
+const LOCAL_AVATAR_DIR = path.join(__dirname, 'public', 'uploads', 'avatars')
 const DASHSCOPE_API_URL =
   process.env.DASHSCOPE_API_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 const MARKET_REPORT_AI_ENABLED = String(process.env.MARKET_REPORT_AI_ENABLED || 'false') === 'true'
 const BUYER_AI_ENABLED = String(process.env.BUYER_AI_ENABLED || 'false') === 'true'
 
 app.use(express.json({ limit: '12mb' }))
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')))
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -60,14 +66,81 @@ const fail = (message, code = 400, data = null) => ({ code, message, data })
 const passwordHash = (password) =>
   crypto.createHash('sha256').update(String(password || '')).digest('hex')
 
+const DEFAULT_USER_AVATAR = '/static/images/profile/default-farmer-avatar.svg'
+
+const ensureUserProfileColumns = () => {
+  ensureColumn('users', 'avatar', 'TEXT')
+  ensureColumn('users', 'real_name', 'TEXT')
+  ensureColumn('users', 'region', 'TEXT')
+  ensureColumn('users', 'farm_role', 'TEXT')
+  ensureColumn('users', 'bio', 'TEXT')
+  ensureColumn('users', 'updated_at', 'TEXT')
+}
+
 const publicUser = (user) => ({
   id: user.id,
   phone: user.phone,
   name: user.nickname,
   nickname: user.nickname,
-  avatar: '',
+  avatar: user.avatar || DEFAULT_USER_AVATAR,
+  realName: user.real_name || '',
+  region: user.region || '',
+  farmRole: user.farm_role || '',
+  bio: user.bio || '',
   role: user.role,
 })
+
+const cleanProfileText = (value, maxLength) => String(value || '').trim().slice(0, maxLength)
+
+const buildRequestPublicUrl = (req, urlPath) => {
+  if (/^https?:\/\//i.test(String(urlPath || ''))) return urlPath
+  return `${req.protocol}://${req.get('host')}${urlPath}`
+}
+
+const saveLocalAvatar = async ({ dataUrl, filename }) => {
+  const match = String(dataUrl || '').match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/)
+  if (!match) {
+    const error = new Error('头像格式不正确，仅支持 jpg、png、webp')
+    error.statusCode = 400
+    throw error
+  }
+
+  const mimeType = match[1]
+  const buffer = Buffer.from(match[2], 'base64')
+  if (!buffer.length) {
+    const error = new Error('头像文件不能为空')
+    error.statusCode = 400
+    throw error
+  }
+  if (buffer.length > LOCAL_AVATAR_MAX_SIZE) {
+    const error = new Error('头像大小不能超过 2MB')
+    error.statusCode = 400
+    throw error
+  }
+
+  fs.mkdirSync(LOCAL_AVATAR_DIR, { recursive: true })
+  const ext = 'webp'
+  const safeBase = String(filename || 'avatar').replace(/\.[^.]+$/, '').replace(/[^\w-]+/g, '-').slice(0, 32) || 'avatar'
+  const objectKey = `${Date.now()}-${crypto.randomUUID()}-${safeBase}.${ext}`
+  const target = path.join(LOCAL_AVATAR_DIR, objectKey)
+  const output = await sharp(buffer)
+    .rotate()
+    .resize(320, 320, {
+      fit: 'cover',
+      position: 'attention',
+    })
+    .webp({ quality: 82 })
+    .toBuffer()
+
+  fs.writeFileSync(target, output)
+
+  return {
+    url: `/uploads/avatars/${objectKey}`,
+    objectKey: `uploads/avatars/${objectKey}`,
+    mimeType: 'image/webp',
+    size: output.length,
+  }
+}
 
 const issueTokens = (user) => {
   const access = jwt.sign({ sub: user.id, phone: user.phone }, JWT_SECRET, ACCESS_TOKEN_TTL)
@@ -2086,7 +2159,54 @@ app.post('/api/auth/refresh', (req, res) => {
 })
 
 app.get('/api/auth/profile', requireAuth, (req, res) => {
+  ensureUserProfileColumns()
   res.json(ok(publicUser(req.user)))
+})
+
+app.put('/api/auth/profile', requireAuth, (req, res) => {
+  ensureUserProfileColumns()
+  const { nickname, realName, region, farmRole, bio, avatar } = req.body || {}
+  const cleanNickname = cleanProfileText(nickname || req.user.nickname, 24)
+  const cleanRealName = cleanProfileText(realName, 24)
+  const cleanRegion = cleanProfileText(region, 40)
+  const cleanFarmRole = cleanProfileText(farmRole, 32)
+  const cleanBio = cleanProfileText(bio, 120)
+  const cleanAvatar = cleanProfileText(avatar || DEFAULT_USER_AVATAR, 180)
+
+  if (!cleanNickname) {
+    res.status(400).json(fail('昵称不能为空'))
+    return
+  }
+
+  const now = nowIso()
+  db.prepare(
+    `UPDATE users
+     SET nickname = ?, avatar = ?, real_name = ?, region = ?, farm_role = ?, bio = ?, updated_at = ?
+     WHERE id = ?`,
+  ).run(cleanNickname, cleanAvatar, cleanRealName, cleanRegion, cleanFarmRole, cleanBio, now, req.user.id)
+
+  const user = findUserById(req.user.id)
+  res.json(ok(publicUser(user), '个人档案已更新'))
+})
+
+app.post('/api/auth/avatar', requireAuth, async (req, res) => {
+  try {
+    ensureUserProfileColumns()
+    const { dataUrl, filename } = req.body || {}
+    const avatar = await saveLocalAvatar({ dataUrl, filename })
+    const avatarUrl = buildRequestPublicUrl(req, avatar.url)
+    const now = nowIso()
+
+    db.prepare('UPDATE users SET avatar = ?, updated_at = ? WHERE id = ?').run(avatarUrl, now, req.user.id)
+    db.prepare(
+      'INSERT INTO uploads (user_id, url, object_key, mime_type, size, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    ).run(req.user.id, avatarUrl, avatar.objectKey, avatar.mimeType, avatar.size, now)
+
+    const user = findUserById(req.user.id)
+    res.json(ok({ ...avatar, url: avatarUrl, user: publicUser(user) }, '头像已更新'))
+  } catch (error) {
+    res.status(error.statusCode || 500).json(fail(error.message || '头像上传失败', error.statusCode || 500))
+  }
 })
 
 app.post('/api/auth/logout', requireAuth, (req, res) => {

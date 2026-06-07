@@ -8,7 +8,8 @@ const PUBLIC_PAGES = new Set([
   '/pages/buyer/index',
   '/pages/ai-consult/index',
   '/pages/my-field/index',
-  '/pages/ads/index'
+  '/pages/ads/index',
+  '/pages/profile/index'
 ])
 
 const normalizePath = (value: string) => {

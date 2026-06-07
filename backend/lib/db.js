@@ -308,6 +308,12 @@ const initDb = () => {
   ensureColumn('crops', 'expected_yield', 'REAL NOT NULL DEFAULT 0')
   ensureColumn('crops', 'yield_unit', "TEXT NOT NULL DEFAULT '斤'")
   ensureColumn('crops', 'expected_market_time', 'TEXT')
+  ensureColumn('users', 'avatar', 'TEXT')
+  ensureColumn('users', 'real_name', 'TEXT')
+  ensureColumn('users', 'region', 'TEXT')
+  ensureColumn('users', 'farm_role', 'TEXT')
+  ensureColumn('users', 'bio', 'TEXT')
+  ensureColumn('users', 'updated_at', 'TEXT')
 }
 
 // ===== market-price-forecast Phase 1: schema 迁移 =====
@@ -564,4 +570,5 @@ module.exports = {
   initForecastDb,
   resetDemoData,
   nowIso,
+  ensureColumn,
 }

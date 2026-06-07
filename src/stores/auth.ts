@@ -27,6 +27,28 @@ export interface RegisterPayload {
   nickname?: string
 }
 
+export interface UpdateUserProfilePayload {
+  nickname: string
+  realName?: string
+  region?: string
+  farmRole?: string
+  bio?: string
+  avatar?: string
+}
+
+export interface UploadAvatarPayload {
+  dataUrl: string
+  filename?: string
+}
+
+export interface UploadAvatarResult {
+  url: string
+  objectKey: string
+  mimeType: string
+  size: number
+  user: UserInfo
+}
+
 const readUserInfo = (): UserInfo | null => {
   const cached = uni.getStorageSync('userInfo')
   if (!cached) return null
@@ -185,6 +207,44 @@ export const useAuthStore = defineStore('auth', () => {
     return user
   }
 
+  const updateUserProfile = async (payload: UpdateUserProfilePayload) => {
+    if (isMockMode()) {
+      const nextUser = {
+        ...(userInfo.value || {}),
+        ...payload,
+        name: payload.nickname,
+        avatar: payload.avatar || userInfo.value?.avatar || '/static/images/profile/default-farmer-avatar.svg',
+      }
+      setUserInfo(nextUser)
+      return nextUser
+    }
+
+    const user = await http.put<UserInfo, UpdateUserProfilePayload>('/auth/profile', payload)
+    setUserInfo(user)
+    return user
+  }
+
+  const uploadUserAvatar = async (payload: UploadAvatarPayload) => {
+    if (isMockMode()) {
+      const nextUser = {
+        ...(userInfo.value || {}),
+        avatar: payload.dataUrl,
+      }
+      setUserInfo(nextUser)
+      return {
+        url: payload.dataUrl,
+        objectKey: '',
+        mimeType: 'image/png',
+        size: payload.dataUrl.length,
+        user: nextUser,
+      }
+    }
+
+    const result = await http.post<UploadAvatarResult, UploadAvatarPayload>('/auth/avatar', payload)
+    setUserInfo(result.user)
+    return result
+  }
+
   const logout = async () => {
     if (!isMockMode() && token.value) {
       try {
@@ -225,6 +285,8 @@ export const useAuthStore = defineStore('auth', () => {
     sendSmsCode,
     refreshAccessToken,
     fetchUserProfile,
+    updateUserProfile,
+    uploadUserAvatar,
     logout,
     requireAuth,
   }
