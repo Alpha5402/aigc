@@ -3,7 +3,11 @@
 page {
   background: var(--acm-bg-app);
   color: var(--acm-text-primary);
+  font-family: var(--acm-font-family);
   font-size: var(--acm-font-body);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-rendering: optimizeLegibility;
 }
 
 .acm-page-bg {

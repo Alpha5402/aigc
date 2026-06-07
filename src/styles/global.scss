@@ -32,6 +32,7 @@ button {
   padding: 0;
   border: 0;
   border-radius: 0;
+  font-family: var(--acm-font-family);
   line-height: 1;
   background: transparent;
   box-sizing: border-box;
@@ -362,11 +363,17 @@ html, body, #app {
   width: 100%;
   max-width: none;
   margin: 0;
+  font-family: var(--acm-font-family);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 uni-app, uni-page, uni-page-wrapper, uni-page-body {
   width: 100%;
   max-width: none;
+  font-family: var(--acm-font-family);
 }
 
 uni-page-head, uni-tabbar {
@@ -374,6 +381,52 @@ uni-page-head, uni-tabbar {
 }
 
 /* #endif */
+
+.app-header__title,
+.page-title,
+.header-title,
+.profile-name,
+.card-title,
+.section-title,
+.panel-title,
+.hero-title {
+  font-family: var(--acm-font-display);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+
+.header-eyebrow,
+.hero-eyebrow,
+.summary-label,
+.card-note,
+.tab-item,
+.point-chip,
+.tag,
+.status-chip,
+.quick-btn,
+.app-button {
+  font-family: var(--acm-font-condensed);
+  letter-spacing: 0.04em;
+}
+
+.header-pill-row text,
+.profile-role,
+.profile-status,
+.bottom-text {
+  font-family: var(--acm-font-hand);
+  letter-spacing: 0.05em;
+}
+
+.summary-value,
+.profile-stat-value,
+.price-value,
+.price-main,
+.material-title,
+.goal-title {
+  font-family: var(--acm-font-lively);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
 
 /* ============================================================
    统一通知铃铛按钮 — 全平台公共样式

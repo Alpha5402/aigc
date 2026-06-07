@@ -1,5 +1,37 @@
 @import "./design-tokens.scss";
 
+@font-face {
+  font-family: "ACM XiaoWei";
+  src: url("/static/fonts/ZCOOLXiaoWei-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ACM KuaiLe";
+  src: url("/static/fonts/ZCOOLKuaiLe-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ACM MaShan";
+  src: url("/static/fonts/MaShanZheng-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ACM QingKe";
+  src: url("/static/fonts/ZCOOLQingKeHuangYou-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 $acm-font-page-title: 44rpx;
 $acm-font-page-subtitle: 28rpx;
 $acm-font-section-title: 34rpx;
@@ -34,6 +66,11 @@ $acm-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
 :root,
 page {
+  --acm-font-family: "HarmonyOS Sans SC", "MiSans", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --acm-font-display: "ACM XiaoWei", "HarmonyOS Sans SC", "PingFang SC", sans-serif;
+  --acm-font-lively: "ACM KuaiLe", "HarmonyOS Sans SC", "PingFang SC", sans-serif;
+  --acm-font-hand: "ACM MaShan", "HarmonyOS Sans SC", "PingFang SC", sans-serif;
+  --acm-font-condensed: "ACM QingKe", "HarmonyOS Sans SC", "PingFang SC", sans-serif;
   --acm-font-page-title: #{$acm-font-page-title};
   --acm-font-page-subtitle: #{$acm-font-page-subtitle};
   --acm-font-section-title: #{$acm-font-section-title};
