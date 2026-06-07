@@ -134,6 +134,11 @@ const disposeChart = (chartId) => {
 
 const buildLineOption = (payload) => {
   const hasCI = payload.ci80LData && payload.ci80LData.some((v) => v != null)
+  const validPrices = (payload.lineData || []).map(Number).filter((v) => Number.isFinite(v))
+  const avgPrice = validPrices.length
+    ? validPrices.reduce((sum, value) => sum + value, 0) / validPrices.length
+    : 0
+  const stableBand = Math.max(Math.abs(avgPrice) * 0.008, 0.08)
   const axisRange = Number(payload.yMax) - Number(payload.yMin)
   const axisDecimals = axisRange <= 1 ? 2 : 1
   const series = []
@@ -193,6 +198,33 @@ const buildLineOption = (payload) => {
         ],
       },
     },
+    markArea: payload.isLineFlat ? {
+      silent: true,
+      itemStyle: {
+        color: 'rgba(214,168,58,0.12)',
+      },
+      data: [[
+        { yAxis: Number((avgPrice - stableBand).toFixed(2)) },
+        { yAxis: Number((avgPrice + stableBand).toFixed(2)) },
+      ]],
+    } : undefined,
+    markLine: payload.isLineFlat ? {
+      silent: true,
+      symbol: 'none',
+      lineStyle: {
+        color: 'rgba(122,101,72,0.42)',
+        width: 1,
+        type: 'dashed',
+      },
+      label: {
+        show: true,
+        formatter: '平稳',
+        color: '#7a6548',
+        fontSize: 11,
+        position: 'insideEndTop',
+      },
+      data: [{ yAxis: Number(avgPrice.toFixed(2)) }],
+    } : undefined,
     emphasis: {
       itemStyle: {
         color: '#52a355',
