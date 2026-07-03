@@ -2,6 +2,7 @@ type SpeechRecognitionCtor = new () => any
 type SpeechErrorMap = Record<string, string>
 
 const RECOGNIZE_TIMEOUT = 12000
+const APP_SPEECH_ERROR = 'App 语音识别服务未配置，请先在 DCloud manifest 中配置百度或讯飞语音 SDK，或使用文字输入'
 
 const speechErrorMessages: SpeechErrorMap = {
   'no-speech': '没有听到有效语音，请靠近麦克风后再试',
@@ -144,60 +145,10 @@ const startPlusSpeechRecognize = async (): Promise<string> => {
     throw new Error('当前 App 基座未启用语音输入模块，请检查 manifest.json 和自定义基座')
   }
 
-  return new Promise<string>((resolve, reject) => {
-    let settled = false
-
-    const finish = (callback: () => void) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      callback()
-    }
-
-    const timer = setTimeout(() => {
-      finish(() => {
-        try {
-          speech.stopRecognize?.()
-        } catch (error) {
-          console.warn('[voice] APP stop error:', error)
-        }
-        reject(new Error('长时间没有检测到语音，请重新尝试或使用文字输入'))
-      })
-    }, RECOGNIZE_TIMEOUT)
-
-    try {
-      speech.startRecognize(
-        {
-          engine: 'baidu',
-          lang: 'zh-cn',
-          punctuation: true,
-          userInterface: false,
-        },
-        (result: string) => {
-          const text = String(result || '').trim()
-          console.log('[voice] APP result:', text)
-          finish(() => {
-            if (text) {
-              resolve(text)
-              return
-            }
-            reject(new Error('没有识别到有效语音，请重新尝试或使用文字输入'))
-          })
-        },
-        (error: any) => {
-          console.warn('[voice] APP speech error:', stringifySpeechError(error))
-          finish(() => {
-            reject(new Error(error?.message || 'App 语音识别启动失败，请检查语音模块配置'))
-          })
-        },
-      )
-    } catch (error: any) {
-      console.warn('[voice] APP error:', error)
-      finish(() => {
-        reject(new Error(error?.message || 'App 语音识别启动失败，请检查语音模块配置'))
-      })
-    }
-  })
+  // The native Speech module only works when a concrete engine SDK is packaged
+  // and configured in manifest.json. Calling a missing engine throws
+  // "not found engine=baidu" on Android, so fail early with a user-facing hint.
+  throw new Error(APP_SPEECH_ERROR)
 }
 
 export const isVoiceRecognizeSupported = () => {
@@ -206,7 +157,7 @@ export const isVoiceRecognizeSupported = () => {
   // #endif
 
   // #ifdef APP-PLUS
-  return true
+  return false
   // #endif
 
   return false

@@ -54,6 +54,14 @@ const BUYER_AI_ENABLED = String(process.env.BUYER_AI_ENABLED || 'false') === 'tr
 app.use(express.json({ limit: '12mb' }))
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')))
 app.use((req, res, next) => {
+  const startedAt = Date.now()
+  res.on('finish', () => {
+    const durationMs = Date.now() - startedAt
+    console.log(`[http] ${req.method} ${req.originalUrl} -> ${res.statusCode} ${durationMs}ms`)
+  })
+  next()
+})
+app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')

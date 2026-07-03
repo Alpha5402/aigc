@@ -35,7 +35,13 @@ const getFileSize = (filePath: string): Promise<number | undefined> =>
 
 const readFileAsBase64 = (filePath: string): Promise<string> =>
   new Promise((resolve, reject) => {
-    uni.getFileSystemManager().readFile({
+    const fileSystemManager = (uni as any).getFileSystemManager?.()
+    if (!fileSystemManager) {
+      reject(new Error('当前平台不支持文件系统管理器，将使用文件直传'))
+      return
+    }
+
+    fileSystemManager.readFile({
       filePath,
       encoding: 'base64',
       success: (res) => {

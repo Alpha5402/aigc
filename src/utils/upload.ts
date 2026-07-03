@@ -27,14 +27,44 @@ interface OssSignResult {
 const DEFAULT_MAX_SIZE = 10 * 1024 * 1024
 const DEFAULT_QUALITY = 80
 const DEFAULT_TIMEOUT = 60000
+const APP_PROD_UPLOAD_SIGN_URL = 'https://agricloud-api.onrender.com/api/oss/sign'
+
+const isAppRuntime = () => {
+  try {
+    const systemInfo = uni.getSystemInfoSync()
+    const platform = String(systemInfo?.uniPlatform || '').toLowerCase()
+    if (platform === 'app' || platform === 'app-plus') return true
+    return typeof (globalThis as any).plus !== 'undefined'
+  } catch (_error) {
+    return typeof (globalThis as any).plus !== 'undefined'
+  }
+}
+
+const normalizeHttpUrl = (value?: string) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  try {
+    const url = new URL(raw)
+    return /^https?:$/i.test(url.protocol) ? url.toString() : ''
+  } catch (_error) {
+    return ''
+  }
+}
 
 const getUploadSignUrl = (): string => {
-  const envUploadUrl = (import.meta as any)?.env?.VITE_UPLOAD_URL as string | undefined
+  const envUploadUrl = import.meta.env.VITE_UPLOAD_URL as string | undefined
   const runtimeUploadUrl = uni.getStorageSync('uploadURL')
+  const appRuntime = isAppRuntime()
+  const normalizedEnvUploadUrl = normalizeHttpUrl(envUploadUrl)
+
+  if (appRuntime && import.meta.env.PROD) {
+    return normalizedEnvUploadUrl || APP_PROD_UPLOAD_SIGN_URL
+  }
+
   return String(runtimeUploadUrl || envUploadUrl || '/oss/sign').trim()
 }
 
-export const isMockMode = (): boolean => String((import.meta as any)?.env?.VITE_USE_MOCK || '').trim() === 'true'
+export const isMockMode = (): boolean => String(import.meta.env.VITE_USE_MOCK || '').trim() === 'true'
 
 const getFileSize = (filePath: string): Promise<number> =>
   new Promise((resolve, reject) => {

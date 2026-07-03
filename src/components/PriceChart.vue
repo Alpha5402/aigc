@@ -1,17 +1,15 @@
 <template>
   <view class="price-chart-wrap">
-    <!-- @vue-ignore -->
-    <view
-      :id="chartId"
+    <l-echart
+      ref="chartRef"
       class="price-chart"
-      :prop="renderPayload"
-      :change:prop="echartsRender.renderChart"
-    ></view>
+      @finished="initChart"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 interface PricePoint {
   date: string
@@ -44,9 +42,10 @@ const props = withDefaults(defineProps<Props>(), {
   basePrice: 0,
 })
 
-const chartId = `acm-chart-${Math.random().toString(36).slice(2, 10)}`
+const chartRef = ref<any>(null)
+const chartInstance = ref<any>(null)
 
-const calcAxisBounds = (values: number[]) => {
+const calcAxisBounds = (values: Array<number | null | undefined>) => {
   const finiteValues = values.filter((value) => Number.isFinite(value))
   const sourceValues = finiteValues.length ? finiteValues : [0]
   const minValue = Math.min(...sourceValues)
@@ -55,25 +54,26 @@ const calcAxisBounds = (values: number[]) => {
   const rawRange = maxValue - minValue
   const relativeRange = Math.abs(center) > 0 ? rawRange / Math.abs(center) : rawRange
 
-  let visibleRange = rawRange
+  const minVisibleRange = Math.max(Math.abs(center) * 0.018, 0.12)
+  let visibleRange = Math.max(rawRange, minVisibleRange)
   if (rawRange === 0) {
-    visibleRange = Math.max(Math.abs(center) * 0.04, 0.6)
-  } else if (relativeRange < 0.015) {
-    visibleRange = Math.max(rawRange * 3.2, Math.abs(center) * 0.025, 0.4)
-  } else if (relativeRange < 0.04) {
-    visibleRange = Math.max(rawRange * 2.2, Math.abs(center) * 0.04, 0.5)
+    visibleRange = Math.max(Math.abs(center) * 0.035, 0.4)
+  } else if (relativeRange < 0.012) {
+    visibleRange = Math.max(rawRange * 1.8, minVisibleRange)
+  } else if (relativeRange < 0.035) {
+    visibleRange = rawRange * 1.45
   } else if (relativeRange < 0.1) {
-    visibleRange = rawRange * 1.55
+    visibleRange = rawRange * 1.28
   } else {
-    visibleRange = rawRange * 1.25
+    visibleRange = rawRange * 1.18
   }
 
   const yMin = center - visibleRange / 2
   const yMax = center + visibleRange / 2
 
   return {
-    min: Math.max(0, Math.floor(yMin * 10) / 10),
-    max: Math.ceil(yMax * 10) / 10,
+    min: Math.max(0, Math.floor(yMin * 100) / 100),
+    max: Math.ceil(yMax * 100) / 100,
   }
 }
 
@@ -99,11 +99,15 @@ const barValues = computed(() => {
   return values.length ? values : [0]
 })
 
-const lineBounds = computed(() => calcAxisBounds(lineValues.value))
+const lineAxisValues = computed(() => [
+  ...lineValues.value,
+  ...props.points.map((item) => item.ci80L),
+  ...props.points.map((item) => item.ci80U),
+])
+const lineBounds = computed(() => calcAxisBounds(lineAxisValues.value))
 const barBounds = computed(() => calcAxisBounds(barValues.value))
 
 const renderPayload = computed(() => ({
-  chartId,
   mode: props.mode,
   xAxisData: props.mode === 'bar'
     ? props.comparisonPoints.map((item) => item.day)
@@ -117,21 +121,6 @@ const renderPayload = computed(() => ({
   yMax: props.mode === 'bar' ? barBounds.value.max : lineBounds.value.max,
   isLineFlat: isLineFlat.value,
 }))
-</script>
-
-<script module="echartsRender" lang="renderjs">
-import * as echarts from 'echarts'
-
-const chartMap = {}
-
-const disposeChart = (chartId) => {
-  if (!chartId) return
-  const chart = chartMap[chartId]
-  if (!chart) return
-  chart.dispose()
-  delete chartMap[chartId]
-}
-
 const buildLineOption = (payload) => {
   const hasCI = payload.ci80LData && payload.ci80LData.some((v) => v != null)
   const validPrices = (payload.lineData || []).map(Number).filter((v) => Number.isFinite(v))
@@ -257,19 +246,24 @@ const buildLineOption = (payload) => {
         color: '#1a1a1a',
         fontSize: 13,
       },
+      renderMode: 'richText',
       extraCssText: 'border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1);padding:8px 12px;',
       formatter: (params) => {
         const point = Array.isArray(params) ? params.find(p => p.seriesName === '预测价格') || params[0] : params
         if (!point) return ''
-        let tip = `${point.axisValue}<br/>价格：¥${Number(point.value).toFixed(2)}`
+        const lines = [
+          `日期：${point.axisValue}`,
+          `数据：¥${Number(point.value).toFixed(2)}`,
+        ]
         if (hasCI) {
           const l = payload.ci80LData[point.dataIndex]
           const u = payload.ci80UData[point.dataIndex]
           if (l != null && u != null) {
-             tip += `<br/><span style="font-size:11px;color:#999">80% 置信区间：¥${Number(l).toFixed(2)} - ¥${Number(u).toFixed(2)}</span>`
+            lines.push('置信度：80%')
+            lines.push(`区间：¥${Number(l).toFixed(2)} - ¥${Number(u).toFixed(2)}`)
           }
         }
-        return tip
+        return lines.join('\n')
       },
     },
     xAxis: {
@@ -339,7 +333,19 @@ const buildBarOption = (payload) => ({
       color: '#1a1a1a',
       fontSize: 13,
     },
+    renderMode: 'richText',
     extraCssText: 'border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1);padding:8px 12px;',
+    formatter: (params) => {
+      const items = Array.isArray(params) ? params : [params]
+      if (!items.length) return ''
+      const title = items[0]?.axisValue ? `日期：${items[0].axisValue}` : ''
+      return [
+        title,
+        ...items
+          .filter((item) => item && Number.isFinite(Number(item.value)))
+          .map((item) => `${item.seriesName}：¥${Number(item.value).toFixed(2)}`),
+      ].filter(Boolean).join('\n')
+    },
   },
   xAxis: {
     type: 'category',
@@ -408,53 +414,40 @@ const buildBarOption = (payload) => ({
 
 const getOption = (payload) => (payload.mode === 'bar' ? buildBarOption(payload) : buildLineOption(payload))
 
-const withDomReady = (chartId, callback) => {
-  let retry = 0
-  const maxRetry = 20
-
-  const exec = () => {
-    const dom = document.getElementById(chartId)
-    if (dom) {
-      callback(dom)
-      return
-    }
-
-    if (retry < maxRetry) {
-      retry += 1
-      setTimeout(exec, 30)
-    }
+const setChartOption = () => {
+  const option = getOption(renderPayload.value)
+  if (chartInstance.value) {
+    chartInstance.value.setOption(option, true)
+    chartRef.value?.resize?.()
+    return
   }
 
-  exec()
+  chartRef.value?.setOption?.(option)
 }
 
-export default {
-  methods: {
-    renderChart(newValue) {
-      const payload = newValue
-      if (!payload || !payload.chartId) return
+const initChart = async () => {
+  if (!chartRef.value) return
 
-      this.__chartId = payload.chartId
-
-      withDomReady(payload.chartId, (dom) => {
-        let chart = chartMap[payload.chartId]
-        if (!chart) {
-          chart = echarts.init(dom, null, { renderer: 'canvas' })
-          chartMap[payload.chartId] = chart
-        }
-
-        chart.setOption(getOption(payload), true)
-        chart.resize()
-      })
-    },
-  },
-  beforeDestroy() {
-    disposeChart(this.__chartId)
-  },
-  unmounted() {
-    disposeChart(this.__chartId)
-  },
+  try {
+    chartInstance.value = await chartRef.value.init(null)
+    setChartOption()
+  } catch (error) {
+    console.error('[PriceChart] 图表初始化失败:', error)
+  }
 }
+
+watch(
+  renderPayload,
+  () => {
+    void nextTick(setChartOption)
+  },
+  { deep: true },
+)
+
+onBeforeUnmount(() => {
+  chartRef.value?.dispose?.()
+  chartInstance.value = null
+})
 </script>
 
 <style scoped lang="scss">

@@ -1,7 +1,10 @@
 const LOCATION_CACHE_KEY = 'acm_current_location_v1'
 const LOCATION_CACHE_TTL_MS = 10 * 60 * 1000
-const LOCATION_REQUEST_TIMEOUT_MS = 3000
+const LOCATION_REQUEST_TIMEOUT_MS = 8000
 const isDevMode = import.meta.env.DEV
+const PI = Math.PI
+const EARTH_SEMI_MAJOR_AXIS = 6378245
+const GCJ_ECCENTRICITY_SQUARED = 0.006693421622965943
 
 export interface CurrentLocationPayload {
   latitude: number
@@ -10,6 +13,47 @@ export interface CurrentLocationPayload {
 
 interface StoredLocationPayload extends CurrentLocationPayload {
   cachedAt: number
+}
+
+const isOutsideMainlandChina = (latitude: number, longitude: number) =>
+  longitude < 72.004 || longitude > 137.8347 || latitude < 0.8293 || latitude > 55.8271
+
+const transformLatitude = (x: number, y: number) => {
+  let result = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x))
+  result += ((20 * Math.sin(6 * x * PI) + 20 * Math.sin(2 * x * PI)) * 2) / 3
+  result += ((20 * Math.sin(y * PI) + 40 * Math.sin((y / 3) * PI)) * 2) / 3
+  result += ((160 * Math.sin((y / 12) * PI) + 320 * Math.sin((y * PI) / 30)) * 2) / 3
+  return result
+}
+
+const transformLongitude = (x: number, y: number) => {
+  let result = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x))
+  result += ((20 * Math.sin(6 * x * PI) + 20 * Math.sin(2 * x * PI)) * 2) / 3
+  result += ((20 * Math.sin(x * PI) + 40 * Math.sin((x / 3) * PI)) * 2) / 3
+  result += ((150 * Math.sin((x / 12) * PI) + 300 * Math.sin((x / 30) * PI)) * 2) / 3
+  return result
+}
+
+const wgs84ToGcj02 = (latitude: number, longitude: number): CurrentLocationPayload => {
+  if (isOutsideMainlandChina(latitude, longitude)) return { latitude, longitude }
+
+  let latitudeOffset = transformLatitude(longitude - 105, latitude - 35)
+  let longitudeOffset = transformLongitude(longitude - 105, latitude - 35)
+  const radianLatitude = (latitude / 180) * PI
+  let magic = Math.sin(radianLatitude)
+  magic = 1 - GCJ_ECCENTRICITY_SQUARED * magic * magic
+  const sqrtMagic = Math.sqrt(magic)
+  latitudeOffset =
+    (latitudeOffset * 180) /
+    (((EARTH_SEMI_MAJOR_AXIS * (1 - GCJ_ECCENTRICITY_SQUARED)) / (magic * sqrtMagic)) * PI)
+  longitudeOffset =
+    (longitudeOffset * 180) /
+    ((EARTH_SEMI_MAJOR_AXIS / sqrtMagic) * Math.cos(radianLatitude) * PI)
+
+  return {
+    latitude: latitude + latitudeOffset,
+    longitude: longitude + longitudeOffset,
+  }
 }
 
 const readLocationCache = (): CurrentLocationPayload | null => {
@@ -62,12 +106,11 @@ export const getCurrentLocationPayload = async (forceRefresh = false): Promise<C
     }, LOCATION_REQUEST_TIMEOUT_MS)
 
     uni.getLocation({
-      type: 'gcj02',
+      // System positioning works on vivo devices without bundling a paid map SDK.
+      // The product and backend use GCJ-02, so convert the system WGS-84 result locally.
+      type: 'wgs84',
       success: (res) => {
-        const payload = {
-          latitude: Number(res.latitude),
-          longitude: Number(res.longitude),
-        }
+        const payload = wgs84ToGcj02(Number(res.latitude), Number(res.longitude))
         if (Number.isFinite(payload.latitude) && Number.isFinite(payload.longitude)) {
           writeLocationCache(payload)
           finish(payload)

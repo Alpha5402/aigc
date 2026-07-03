@@ -16,8 +16,9 @@ export interface HttpError extends Error {
   raw?: unknown
 }
 
-const DEFAULT_TIMEOUT = 15000
-const APP_DEV_API_BASE_URL = 'http://10.242.166.161:3000/api'
+const DEFAULT_TIMEOUT = 30000
+const APP_PROD_API_BASE_URL = 'https://agricloud-api.onrender.com/api'
+const APP_DEV_API_BASE_URL = APP_PROD_API_BASE_URL
 
 const normalizeBaseUrl = (value?: string) => {
   const raw = String(value || '').trim()
@@ -44,9 +45,12 @@ const isLocalHostName = (hostname: string) => ['127.0.0.1', 'localhost'].include
 
 const isAppRuntime = () => {
   try {
-    return uni.getSystemInfoSync()?.uniPlatform === 'app'
+    const systemInfo = uni.getSystemInfoSync()
+    const platform = String(systemInfo?.uniPlatform || '').toLowerCase()
+    if (platform === 'app' || platform === 'app-plus') return true
+    return typeof (globalThis as any).plus !== 'undefined'
   } catch (_error) {
-    return false
+    return typeof (globalThis as any).plus !== 'undefined'
   }
 }
 
@@ -59,13 +63,28 @@ const isLocalBaseUrl = (value: string) => {
 }
 
 const getBaseUrl = () => {
-  const envBase = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined
+  const envBase = import.meta.env.VITE_API_BASE_URL as string | undefined
   const runtimeBase = uni.getStorageSync('baseURL')
   const localHost =
     typeof window !== 'undefined' && isLocalHostName(window.location.hostname)
   const normalizedEnvBase = normalizeBaseUrl(envBase)
   const normalizedRuntimeBase = normalizeBaseUrl(String(runtimeBase || ''))
   const appRuntime = isAppRuntime()
+  const productionApp = appRuntime && import.meta.env.PROD
+  const appFallbackBase = normalizeBaseUrl(APP_PROD_API_BASE_URL)
+
+  if (import.meta.env.PROD && (!normalizedEnvBase || normalizedEnvBase.startsWith('/') || isLocalBaseUrl(normalizedEnvBase))) {
+    return appFallbackBase
+  }
+
+  // A release APK must not be redirected to an old LAN address cached by a
+  // previously installed debug build.
+  if (productionApp) {
+    if (normalizedEnvBase && !normalizedEnvBase.startsWith('/') && !isLocalBaseUrl(normalizedEnvBase)) {
+      return normalizedEnvBase
+    }
+    return appFallbackBase
+  }
 
   if (normalizedRuntimeBase) {
     if (appRuntime && normalizedEnvBase && isLocalBaseUrl(normalizedRuntimeBase) && !isLocalBaseUrl(normalizedEnvBase)) {
@@ -114,12 +133,17 @@ const getBaseUrl = () => {
 const buildUrl = (url: string) => {
   if (/^https?:\/\//i.test(url)) return url
   const base = getBaseUrl()
-  if (!base) return url
+  if (!base) {
+    if (isAppRuntime()) {
+      throw createHttpError(-1, `App 请求地址无效：${url}`)
+    }
+    return url
+  }
 
   const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base
   const cleanPath = url.startsWith('/') ? url : `/${url}`
   const finalUrl = `${cleanBase}${cleanPath}`
-  if ((import.meta as any)?.env?.DEV && cleanPath.includes('/market/')) {
+  if (import.meta.env.DEV && cleanPath.includes('/market/')) {
     console.log('[market] api baseURL =', cleanBase)
     console.log('[market] request url =', finalUrl)
   }
@@ -145,8 +169,16 @@ const request = <T = unknown, TData = Record<string, unknown>>(options: HttpRequ
   const token = String(uni.getStorageSync('token') || '')
 
   return new Promise<T>((resolve, reject) => {
+    let requestUrl = ''
+    try {
+      requestUrl = buildUrl(options.url)
+    } catch (error) {
+      reject(error)
+      return
+    }
+
     uni.request({
-      url: buildUrl(options.url),
+      url: requestUrl,
       method: options.method || 'GET',
       data: options.data as any,
       timeout: options.timeout || DEFAULT_TIMEOUT,
@@ -190,7 +222,8 @@ const request = <T = unknown, TData = Record<string, unknown>>(options: HttpRequ
         resolve(resolveBusinessData<T>(data))
       },
       fail: (error) => {
-        reject(createHttpError(-1, error?.errMsg || '网络异常', undefined, error))
+        const message = error?.errMsg ? `${error.errMsg}（${requestUrl}）` : `网络异常（${requestUrl}）`
+        reject(createHttpError(-1, message, undefined, error))
       },
     })
   })

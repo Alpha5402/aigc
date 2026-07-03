@@ -371,12 +371,12 @@ const handleRematch = () => {
 const openNavigationLink = (url: string) => {
   if (!url) return false
   const plusRuntime = (globalThis as any)?.plus?.runtime
-  if (typeof window !== 'undefined') {
-    window.location.href = url
-    return true
-  }
   if (plusRuntime?.openURL) {
     plusRuntime.openURL(url)
+    return true
+  }
+  if (typeof window !== 'undefined') {
+    window.location.href = url
     return true
   }
   return false

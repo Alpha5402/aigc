@@ -91,6 +91,79 @@ const fuseForecasts = (modelOutputs) => {
   }
 }
 
+const clampNumber = (value, min, max) => Math.min(max, Math.max(min, value))
+
+const averageRecentMovePct = (values) => {
+  const recent = values
+    .slice(-30)
+    .map(Number)
+    .filter((value) => Number.isFinite(value) && value > 0)
+  if (recent.length < 2) return 0.018
+
+  const moves = []
+  for (let i = 1; i < recent.length; i += 1) {
+    moves.push(Math.abs((recent[i] - recent[i - 1]) / recent[i - 1]))
+  }
+  const avg = moves.reduce((sum, value) => sum + value, 0) / moves.length
+  return clampNumber(avg * 2.6, 0.012, 0.045)
+}
+
+const constrainToMarketMovement = ({ forecast, history }) => {
+  if (!forecast || !Array.isArray(forecast.point)) return { forecast, clipped: false }
+  const historyValues = (history?.forwardFilledValues || [])
+    .map(Number)
+    .filter((value) => Number.isFinite(value) && value > 0)
+  const lastKnownPrice = historyValues[historyValues.length - 1]
+  if (!Number.isFinite(lastKnownPrice) || lastKnownPrice <= 0) return { forecast, clipped: false }
+
+  const dailyMovePct = averageRecentMovePct(historyValues)
+  const out = {
+    point: [],
+    ci80Lower: [],
+    ci80Upper: [],
+    ci95Lower: [],
+    ci95Upper: [],
+  }
+  let prevPoint = lastKnownPrice
+  let clipped = false
+
+  for (let i = 0; i < forecast.point.length; i += 1) {
+    const point = Number(forecast.point[i])
+    const ci80Lower = Number(forecast.ci80Lower[i])
+    const ci80Upper = Number(forecast.ci80Upper[i])
+    const ci95Lower = Number(forecast.ci95Lower[i])
+    const ci95Upper = Number(forecast.ci95Upper[i])
+
+    if (![point, ci80Lower, ci80Upper, ci95Lower, ci95Upper].every(Number.isFinite)) {
+      out.point.push(forecast.point[i])
+      out.ci80Lower.push(forecast.ci80Lower[i])
+      out.ci80Upper.push(forecast.ci80Upper[i])
+      out.ci95Lower.push(forecast.ci95Lower[i])
+      out.ci95Upper.push(forecast.ci95Upper[i])
+      continue
+    }
+
+    const minPoint = prevPoint * (1 - dailyMovePct)
+    const maxPoint = prevPoint * (1 + dailyMovePct)
+    const nextPoint = clampNumber(point, minPoint, maxPoint)
+    const shift = nextPoint - point
+    const minBandWidth = Math.max(lastKnownPrice * 0.012, 0.04)
+    const ci80Width = Math.max(ci80Upper - ci80Lower, minBandWidth)
+    const ci95Width = Math.max(ci95Upper - ci95Lower, ci80Width * 1.55)
+
+    out.point.push(nextPoint)
+    out.ci80Lower.push(Math.max(0, nextPoint - ci80Width / 2))
+    out.ci80Upper.push(nextPoint + ci80Width / 2)
+    out.ci95Lower.push(Math.max(0, nextPoint - ci95Width / 2))
+    out.ci95Upper.push(nextPoint + ci95Width / 2)
+
+    if (Math.abs(shift) > 1e-9) clipped = true
+    prevPoint = nextPoint
+  }
+
+  return { forecast: out, clipped }
+}
+
 // ─── 工具：调用 GPU Model_Service ────────────────────────────────────────────
 const callModelService = async ({ requestId, spuId, history, horizonDays }) => {
   if (!MS_SHARED_SECRET) return { ok: false, reason: 'missing_shared_secret' }
@@ -302,14 +375,42 @@ const forecastOne = async ({ spuId, horizonDays = 7, originDate }) => {
 
   // DLinear + N-BEATS 等权融合
   const fused = fuseForecasts(succeeded)
+  const rawValidated = validateAndClip({
+    point: fused.point,
+    ci80Lower: fused.ci80Lower,
+    ci80Upper: fused.ci80Upper,
+    ci95Lower: fused.ci95Lower,
+    ci95Upper: fused.ci95Upper,
+  })
+
+  // Reject structurally invalid model output before applying market movement
+  // constraints. Otherwise the constraint step can accidentally turn an
+  // invalid interval ordering into an apparently valid clipped forecast.
+  if (!rawValidated.ok) {
+    return persistForecastRun({
+      requestId, spuId, originDate: today, horizonDays,
+      status: 'degraded',
+      modelFamilies: succeeded.map((m) => m.family),
+      weights: fused.weights,
+      fused,
+      perModel: msResult.models,
+      borrowedHistoryFlag, borrowedOriginIds,
+      inferenceMs: msResult.totalInferenceMs,
+    })
+  }
+
+  const bounded = constrainToMarketMovement({ forecast: rawValidated, history })
   const validated = validateAndClip({
-    point: fused.point, ci80Lower: fused.ci80Lower, ci80Upper: fused.ci80Upper,
-    ci95Lower: fused.ci95Lower, ci95Upper: fused.ci95Upper,
+    point: bounded.forecast.point,
+    ci80Lower: bounded.forecast.ci80Lower,
+    ci80Upper: bounded.forecast.ci80Upper,
+    ci95Lower: bounded.forecast.ci95Lower,
+    ci95Upper: bounded.forecast.ci95Upper,
   })
 
   return persistForecastRun({
     requestId, spuId, originDate: today, horizonDays,
-    status: validated.ok ? validated.status : 'degraded',
+    status: validated.ok ? (bounded.clipped ? 'clipped' : validated.status) : 'degraded',
     modelFamilies: succeeded.map((m) => m.family),
     weights: fused.weights,
     fused: validated.ok
