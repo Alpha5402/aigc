@@ -17,7 +17,7 @@ npm ci
 npm start
 ```
 
-Render 使用 Node.js `24.15.0`，因为后端依赖 Node 内置的 `node:sqlite`。
+Render 使用 Node.js `24.15.0`，因为后端依赖 Node 内置的 `node:sqlite`。如果已有服务没有自动同步 Blueprint 的 `NODE_VERSION`，需要在 Render 服务的 Environment 页面手动设置 `NODE_VERSION=24.15.0` 后重新部署。
 
 ## 2. 推送到 GitHub
 
