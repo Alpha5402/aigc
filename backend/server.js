@@ -42,8 +42,12 @@ const OSS_MAX_SIZE = Number(process.env.OSS_MAX_SIZE_MB || 10) * 1024 * 1024
 const OSS_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const LOCAL_AVATAR_MAX_SIZE = 2 * 1024 * 1024
 const LOCAL_AVATAR_DIR = path.join(__dirname, 'public', 'uploads', 'avatars')
+const AI_PROVIDER = String(process.env.AI_PROVIDER || (process.env.VIVO_APP_KEY ? 'vivo-xuanji' : 'dashscope')).trim()
+const VIVO_XUANJI_API_URL =
+  process.env.VIVO_XUANJI_API_URL || 'https://api-ai.vivo.com.cn/v1/chat/completions'
 const DASHSCOPE_API_URL =
   process.env.DASHSCOPE_API_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+const AI_API_URL = process.env.AI_API_URL || (AI_PROVIDER.includes('vivo') ? VIVO_XUANJI_API_URL : DASHSCOPE_API_URL)
 const MARKET_REPORT_AI_ENABLED = String(process.env.MARKET_REPORT_AI_ENABLED || 'true') === 'true'
 const BUYER_AI_ENABLED = String(process.env.BUYER_AI_ENABLED || 'false') === 'true'
 
@@ -656,28 +660,87 @@ const extractMessageText = (message) => {
   return ''
 }
 
-const callDashScopeMessage = async ({ model, messages, enableThinking, timeoutMs }) => {
-  const apiKey = process.env.DASHSCOPE_API_KEY
+const isVivoXuanjiProvider = () => AI_PROVIDER.toLowerCase().includes('vivo') || AI_API_URL.includes('api-ai.vivo.com.cn')
+
+const getAiApiKey = () => {
+  if (isVivoXuanjiProvider()) return process.env.VIVO_APP_KEY || process.env.XUANJI_APP_KEY || process.env.DASHSCOPE_API_KEY
+  return process.env.DASHSCOPE_API_KEY || process.env.VIVO_APP_KEY || process.env.XUANJI_APP_KEY
+}
+
+const buildAiRequestUrl = (requestId) => {
+  if (!isVivoXuanjiProvider()) return AI_API_URL
+
+  const url = new URL(AI_API_URL)
+  url.searchParams.set('request_id', requestId)
+  return url.toString()
+}
+
+const applyThinkingOption = ({ body, model, enableThinking }) => {
+  if (typeof enableThinking !== 'boolean') return
+
+  if (!isVivoXuanjiProvider()) {
+    body.enable_thinking = enableThinking
+    return
+  }
+
+  if (/^qwen/i.test(String(model || ''))) {
+    body.enable_thinking = enableThinking
+    return
+  }
+
+  body.thinking = { type: enableThinking ? 'enabled' : 'disabled' }
+}
+
+const getAiTextModel = () =>
+  process.env.AI_TEXT_MODEL ||
+  process.env.VIVO_TEXT_MODEL ||
+  process.env.DASHSCOPE_TEXT_MODEL ||
+  process.env.DASHSCOPE_MODEL ||
+  (isVivoXuanjiProvider() ? 'Doubao-Seed-2.0-mini' : 'qwen3.6-flash')
+
+const getAiVisionModel = () =>
+  process.env.AI_VL_MODEL ||
+  process.env.VIVO_VL_MODEL ||
+  process.env.DASHSCOPE_VL_MODEL ||
+  process.env.DASHSCOPE_MODEL ||
+  (isVivoXuanjiProvider() ? 'Volc-DeepSeek-V3.2' : 'qwen-vl-plus')
+
+const getAiVisionFallbackModels = () =>
+  String(
+    process.env.AI_VL_FALLBACK_MODELS ||
+      process.env.VIVO_VL_FALLBACK_MODELS ||
+      process.env.DASHSCOPE_VL_FALLBACK_MODELS ||
+      getAiVisionModel(),
+  )
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+const formatAiProviderName = (model) => `${AI_PROVIDER || 'ai'}:${model || 'unknown'}`
+
+const callAiMessage = async ({ model, messages, enableThinking, timeoutMs }) => {
+  const apiKey = getAiApiKey()
   if (!apiKey) return { content: '', reasoning: '', error: 'missing_api_key' }
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), Number(timeoutMs || process.env.AI_TIMEOUT_MS || 60000))
+  const requestId = crypto.randomUUID()
   const body = {
     model,
     messages,
-    result_format: 'message',
   }
 
-  if (typeof enableThinking === 'boolean') {
-    body.enable_thinking = enableThinking
+  if (!isVivoXuanjiProvider()) {
+    body.result_format = 'message'
   }
+  applyThinkingOption({ body, model, enableThinking })
 
   try {
-    const response = await fetch(DASHSCOPE_API_URL, {
+    const response = await fetch(buildAiRequestUrl(requestId), {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
       },
       body: JSON.stringify(body),
       signal: controller.signal,
@@ -685,11 +748,11 @@ const callDashScopeMessage = async ({ model, messages, enableThinking, timeoutMs
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '')
-      console.warn('[dashscope] request failed:', response.status, errorText.slice(0, 500))
+      console.warn('[ai-provider] request failed:', AI_PROVIDER, requestId, response.status, errorText.slice(0, 500))
       return {
         content: '',
         reasoning: '',
-        error: `dashscope_http_${response.status}`,
+        error: `${AI_PROVIDER || 'ai'}_http_${response.status}`,
         status: response.status,
         detail: errorText,
       }
@@ -698,28 +761,30 @@ const callDashScopeMessage = async ({ model, messages, enableThinking, timeoutMs
     const message = data?.choices?.[0]?.message
     const content = extractMessageText(message)
     if (!content) {
-      console.warn('[dashscope] empty response:', JSON.stringify(data).slice(0, 500))
+      console.warn('[ai-provider] empty response:', AI_PROVIDER, requestId, JSON.stringify(data).slice(0, 500))
       return { content: '', reasoning: '', error: 'empty_response', detail: data }
     }
     return {
       content,
       reasoning: message?.reasoning_content || '',
       model,
+      provider: AI_PROVIDER,
+      requestId,
     }
   } catch (error) {
     const message = error?.name === 'AbortError' ? 'timeout' : error?.message || 'request_failed'
-    console.warn('[dashscope] request error:', message)
+    console.warn('[ai-provider] request error:', AI_PROVIDER, requestId, message)
     return { content: '', reasoning: '', error: message }
   } finally {
     clearTimeout(timeout)
   }
 }
 
-const callDashScopeDiagnosis = async (payload) => {
+const callAiDiagnosis = async (payload) => {
   const hasImage = Boolean(payload.image)
   const model = hasImage
-    ? process.env.DASHSCOPE_VL_MODEL || process.env.DASHSCOPE_MODEL || 'qwen-vl-plus'
-    : process.env.DASHSCOPE_TEXT_MODEL || process.env.DASHSCOPE_MODEL || 'qwen3.6-flash'
+    ? getAiVisionModel()
+    : getAiTextModel()
   const userContent = hasImage
     ? [
         { type: 'image_url', image_url: { url: payload.image } },
@@ -740,18 +805,15 @@ const callDashScopeDiagnosis = async (payload) => {
   }
 
   if (!hasImage) {
-    return callDashScopeMessage({ ...requestOptions, model })
+    return callAiMessage({ ...requestOptions, model })
   }
 
-  const fallbackModels = String(process.env.DASHSCOPE_VL_FALLBACK_MODELS || 'qwen-vl-plus')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
+  const fallbackModels = getAiVisionFallbackModels()
   const models = Array.from(new Set([model, ...fallbackModels]))
   let lastResult = null
 
   for (const currentModel of models) {
-    const result = await callDashScopeMessage({ ...requestOptions, model: currentModel })
+    const result = await callAiMessage({ ...requestOptions, model: currentModel })
     if (result?.content) return result
     lastResult = result
   }
@@ -759,10 +821,10 @@ const callDashScopeDiagnosis = async (payload) => {
   return lastResult
 }
 
-const callDashScopeMarketReport = async (prompt) => {
+const callAiMarketReport = async (prompt) => {
   if (!MARKET_REPORT_AI_ENABLED) return null
-  const model = process.env.DASHSCOPE_TEXT_MODEL || process.env.DASHSCOPE_MODEL || 'qwen3.6-flash'
-  return callDashScopeMessage({
+  const model = getAiTextModel()
+  return callAiMessage({
     model,
     enableThinking: String(process.env.DASHSCOPE_MARKET_ENABLE_THINKING || 'false') === 'true',
     timeoutMs: Number(process.env.MARKET_REPORT_AI_TIMEOUT_MS || process.env.AI_TIMEOUT_MS || 60000),
@@ -928,9 +990,9 @@ const normalizeMarketingMaterialPackage = (value, fallbackPackage) => {
   }
 }
 
-const callDashScopeMarketingMaterials = async (payload, fallbackPackage) => {
-  const model = process.env.DASHSCOPE_TEXT_MODEL || process.env.DASHSCOPE_MODEL || 'qwen3.6-flash'
-  const result = await callDashScopeMessage({
+const callAiMarketingMaterials = async (payload, fallbackPackage) => {
+  const model = getAiTextModel()
+  const result = await callAiMessage({
     model,
     enableThinking: String(process.env.DASHSCOPE_MARKETING_ENABLE_THINKING || 'false') === 'true',
     timeoutMs: Number(process.env.MARKETING_AI_TIMEOUT_MS || process.env.AI_TIMEOUT_MS || 60000),
@@ -1644,9 +1706,9 @@ const tryParseBuyerRecommendationJson = (content) => {
   }
 }
 
-const callDashScopeBuyerRecommendation = async ({ myProducts, candidates }) => {
-  const model = process.env.DASHSCOPE_TEXT_MODEL || process.env.DASHSCOPE_MODEL || 'qwen3.6-flash'
-  const result = await callDashScopeMessage({
+const callAiBuyerRecommendation = async ({ myProducts, candidates }) => {
+  const model = getAiTextModel()
+  const result = await callAiMessage({
     model,
     enableThinking: String(process.env.DASHSCOPE_ENABLE_THINKING || 'true') === 'true',
     timeoutMs: Number(process.env.BUYER_RECOMMEND_AI_TIMEOUT_MS || process.env.AI_TIMEOUT_MS || 2500),
@@ -1746,9 +1808,9 @@ const recommendBuyersForUser = async ({ userId, origin = DEFAULT_ORIGIN, persist
 
   if (BUYER_AI_ENABLED) {
     try {
-      aiResult = await callDashScopeBuyerRecommendation({ myProducts, candidates: ruleMatches })
+      aiResult = await callAiBuyerRecommendation({ myProducts, candidates: ruleMatches })
     } catch (error) {
-      console.warn('[buyer-recommend] DashScope recommendation failed, fallback to rules:', error.message || error)
+      console.warn('[buyer-recommend] AI recommendation failed, fallback to rules:', error.message || error)
     }
   }
 
@@ -1762,14 +1824,14 @@ const recommendBuyersForUser = async ({ userId, origin = DEFAULT_ORIGIN, persist
           ...item,
           matchScore: aiPick.matchScore,
           matchReason: aiPick.matchReason || item.matchReason,
-          provider: 'dashscope',
+          provider: AI_PROVIDER,
         }
       })
       .sort((a, b) => {
         if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore
         return b.netProfit - a.netProfit
       })
-    provider = 'dashscope'
+    provider = AI_PROVIDER
     summary = aiResult.summary || summary
   }
 
@@ -1834,9 +1896,9 @@ const recommendBuyersForUser = async ({ userId, origin = DEFAULT_ORIGIN, persist
   }
 }
 
-const callDashScopeAdGenerator = async (template) => {
-  const model = process.env.DASHSCOPE_TEXT_MODEL || process.env.DASHSCOPE_MODEL || 'qwen3.6-flash'
-  const result = await callDashScopeMessage({
+const callAiAdGenerator = async (template) => {
+  const model = getAiTextModel()
+  const result = await callAiMessage({
     model,
     enableThinking: String(process.env.DASHSCOPE_ENABLE_THINKING || 'true') === 'true',
     messages: [
@@ -2301,21 +2363,6 @@ app.post('/api/assistant/chat', optionalAuth, (req, res) => {
   }
 })
 
-app.post('/api/assistant/chat', optionalAuth, (req, res) => {
-  const message = normalizeAssistantMessage(req.body?.message)
-  if (!message) {
-    res.status(400).json(fail('请输入指令内容'))
-    return
-  }
-
-  try {
-    res.json(ok(buildAssistantResponse(message)))
-  } catch (error) {
-    console.error('[assistant] chat failed:', error)
-    res.status(500).json(fail('助手暂时没有响应，请稍后再试'))
-  }
-})
-
 app.post('/api/auth/refresh', (req, res) => {
   const { refreshToken } = req.body || {}
   const row = db
@@ -2701,11 +2748,11 @@ app.post('/api/market/report/rag', optionalAuth, async (req, res) => {
       publishDate: item.publishDate,
       products: item.products,
     }))
-    const realReport = lightRagReport?.content ? null : await callDashScopeMarketReport(prompt)
+    const realReport = lightRagReport?.content ? null : await callAiMarketReport(prompt)
     const provider = lightRagReport?.content
       ? 'lightrag'
       : realReport?.content
-        ? 'dashscope'
+        ? AI_PROVIDER
         : fallbackSources.length
           ? 'kb-rag'
           : 'no-data'
@@ -2920,7 +2967,7 @@ const handleGenerateAdMaterials = async (req, res) => {
     sellingPoints: payload.sellingPoints || legacyTemplate?.tags || [],
   }
   const fallbackPackage = buildMarketingMaterialPackage(normalizedPayload)
-  const aiResult = await callDashScopeMarketingMaterials(normalizedPayload, fallbackPackage)
+  const aiResult = await callAiMarketingMaterials(normalizedPayload, fallbackPackage)
   const fallbackEnabled = String(process.env.MARKETING_FALLBACK_ENABLED || 'false') === 'true'
 
   if (!aiResult?.package && !fallbackEnabled) {
@@ -2929,7 +2976,7 @@ const handleGenerateAdMaterials = async (req, res) => {
       isTimeout ? '营销素材生成超时，请稍后重试' : '营销素材调用失败，请检查大模型配置',
       isTimeout ? 504 : 502,
       {
-        provider: 'dashscope',
+        provider: AI_PROVIDER,
         reason: aiResult?.error || 'unknown',
       },
     ))
@@ -2937,7 +2984,7 @@ const handleGenerateAdMaterials = async (req, res) => {
   }
 
   const materialPackage = aiResult?.package || fallbackPackage
-  const provider = aiResult?.package ? `dashscope:${aiResult.model || 'unknown'}` : 'rule-template'
+  const provider = aiResult?.package ? formatAiProviderName(aiResult.model) : 'rule-template'
 
   db.prepare(
     'INSERT INTO ad_history (user_id, template_id, title, content, tags, platform, engagement, provider, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -2966,7 +3013,7 @@ app.post('/api/ai/diagnose', requireAuth, async (req, res) => {
     return
   }
 
-  const realResult = await callDashScopeDiagnosis(payload)
+  const realResult = await callAiDiagnosis(payload)
   const fallbackEnabled = String(process.env.AI_DIAGNOSIS_FALLBACK_ENABLED || 'false') === 'true'
 
   if (!realResult?.content && !fallbackEnabled) {
@@ -2975,14 +3022,14 @@ app.post('/api/ai/diagnose', requireAuth, async (req, res) => {
       ? 'AI 诊断生成超时，请稍后重试或补充更聚焦的症状描述'
       : 'AI 诊断调用失败，请检查大模型配置或图片访问地址'
     res.status(isTimeout ? 504 : 502).json(fail(message, isTimeout ? 504 : 502, {
-      provider: 'dashscope',
+      provider: AI_PROVIDER,
       reason: realResult?.error || 'unknown',
     }))
     return
   }
 
   const reply = realResult?.content || buildAiFallback(payload)
-  const provider = realResult?.content ? `dashscope:${realResult.model || 'unknown'}` : 'mock-fallback'
+  const provider = realResult?.content ? formatAiProviderName(realResult.model) : 'mock-fallback'
 
   db.prepare(
     'INSERT INTO ai_diagnosis_history (user_id, content, image, reply, provider, created_at) VALUES (?, ?, ?, ?, ?, ?)',

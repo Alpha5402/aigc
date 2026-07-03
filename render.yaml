@@ -1,0 +1,61 @@
+services:
+  - type: web
+    name: agricloud-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: SQLITE_PATH
+        value: ./data/agricloud.sqlite
+      - key: JWT_SECRET
+        sync: false
+      - key: ACCESS_TOKEN_TTL_SECONDS
+        value: "86400"
+      - key: REFRESH_TOKEN_TTL_SECONDS
+        value: "604800"
+      - key: DEMO_PHONE
+        value: "13800138000"
+      - key: DEMO_PASSWORD
+        value: "123456"
+      - key: DEMO_NICKNAME
+        value: 演示农户
+      - key: AI_PROVIDER
+        value: vivo-xuanji
+      - key: VIVO_APP_ID
+        sync: false
+      - key: VIVO_APP_KEY
+        sync: false
+      - key: VIVO_XUANJI_API_URL
+        value: https://api-ai.vivo.com.cn/v1/chat/completions
+      - key: VIVO_TEXT_MODEL
+        value: Doubao-Seed-2.0-mini
+      - key: VIVO_VL_MODEL
+        value: Volc-DeepSeek-V3.2
+      - key: AI_TIMEOUT_MS
+        value: "15000"
+      - key: MARKET_REPORT_AI_ENABLED
+        value: "true"
+      - key: LIGHTRAG_ENABLED
+        value: "false"
+      - key: SCHEDULER_ENABLED
+        value: "false"
+      - key: OSS_ENDPOINT
+        value: oss-cn-hongkong.aliyuncs.com
+      - key: OSS_PUBLIC_HOST
+        value: img.ysngj.cn
+      - key: OSS_BUCKET
+        value: test-spiong
+      - key: OSS_ACCESS_KEY_ID
+        sync: false
+      - key: OSS_ACCESS_KEY_SECRET
+        sync: false
+      - key: OSS_UPLOAD_PREFIX
+        value: agricloud/demo/
+      - key: OSS_MAX_SIZE_MB
+        value: "10"
