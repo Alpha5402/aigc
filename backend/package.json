@@ -8,7 +8,7 @@
     "test:forecast": "node --test test/forecast/*.test.js"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "dependencies": {
     "archiver": "^8.0.0",

@@ -17,6 +17,8 @@ npm ci
 npm start
 ```
 
+Render 使用 Node.js `24.15.0`，因为后端依赖 Node 内置的 `node:sqlite`。
+
 ## 2. 推送到 GitHub
 
 Render 免费 Web Service 通常从 GitHub/GitLab 拉代码部署，所以需要先把当前项目推到一个 GitHub 仓库。
