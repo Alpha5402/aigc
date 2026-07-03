@@ -17,9 +17,6 @@
           <SvgIcon name="message-square-text" :size="15" color="var(--acm-brand-primary-dark)" />
           <text>历史</text>
         </button>
-        <button class="topbar-btn acm-touchable" @click="showApiConfig">
-          <SvgIcon name="settings" :size="18" color="var(--acm-brand-primary-dark)" />
-        </button>
       </view>
 
       <!-- <view class="intro-card">
@@ -338,15 +335,6 @@ const showVoiceHint = async () => {
   if (!recognizedText) return
   inputText.value = `${inputText.value}${inputText.value ? '，' : ''}${recognizedText}`
   refreshCanSend()
-}
-
-const showApiConfig = () => {
-  uni.showModal({
-    title: 'AI 配置状态',
-    content: 'AI 问诊已改为后端代理模式。请在服务器 backend/.env 中配置 AI_PROVIDER、VIVO_APP_KEY、VIVO_TEXT_MODEL 和 VIVO_VL_MODEL；调用失败时会直接提示错误，避免返回演示诊断。',
-    showCancel: false,
-    confirmText: '知道了'
-  })
 }
 
 const goBack = () => {

@@ -7,7 +7,6 @@ const PUBLIC_PAGES = new Set([
   '/pages/market/index', 
   '/pages/buyer/index',
   '/pages/ai-consult/index',
-  '/pages/my-field/index',
   '/pages/ads/index',
   '/pages/profile/index'
 ])

@@ -16,7 +16,8 @@
     "node-cron": "^3.0.3",
     "robots-parser": "^3.0.1",
     "sharp": "^0.34.5",
-    "ssh2": "^1.17.0"
+    "ssh2": "^1.17.0",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "fast-check": "^3.23.2"

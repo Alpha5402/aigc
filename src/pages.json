@@ -1,17 +1,17 @@
 {
 	"pages": [
 		{
-			"path": "pages/my-field/index",
-			"style": {
-				"navigationStyle": "custom",
-				"navigationBarTitleText": "我的地"
-			}
-		},
-		{
 			"path": "pages/login/index",
 			"style": {
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "登录"
+			}
+		},
+		{
+			"path": "pages/my-field/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "我的地"
 			}
 		},
 		{

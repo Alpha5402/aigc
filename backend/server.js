@@ -3,6 +3,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const express = require('express')
 const sharp = require('sharp')
+const WebSocket = require('ws')
 const { loadEnv } = require('./lib/env')
 
 loadEnv()
@@ -45,6 +46,7 @@ const LOCAL_AVATAR_DIR = path.join(__dirname, 'public', 'uploads', 'avatars')
 const AI_PROVIDER = String(process.env.AI_PROVIDER || (process.env.VIVO_APP_KEY ? 'vivo-xuanji' : 'dashscope')).trim()
 const VIVO_XUANJI_API_URL =
   process.env.VIVO_XUANJI_API_URL || 'https://api-ai.vivo.com.cn/v1/chat/completions'
+const VIVO_ASR_WS_URL = process.env.VIVO_ASR_WS_URL || 'wss://api-ai.vivo.com.cn/asr/v2'
 const DASHSCOPE_API_URL =
   process.env.DASHSCOPE_API_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 const AI_API_URL = process.env.AI_API_URL || (AI_PROVIDER.includes('vivo') ? VIVO_XUANJI_API_URL : DASHSCOPE_API_URL)
@@ -786,6 +788,152 @@ const callAiMessage = async ({ model, messages, enableThinking, timeoutMs }) => 
   } finally {
     clearTimeout(timeout)
   }
+}
+
+const getVivoAppKey = () =>
+  process.env.VIVO_APP_KEY || process.env.XUANJI_APP_KEY || process.env.DASHSCOPE_API_KEY || ''
+
+const createAsrUserId = (seed) =>
+  crypto.createHash('md5').update(String(seed || crypto.randomUUID())).digest('hex')
+
+const buildVivoAsrUrl = ({ requestId, userId }) => {
+  const url = new URL(VIVO_ASR_WS_URL)
+  const systemTime = String(Date.now())
+  const params = {
+    client_version: process.env.VIVO_ASR_CLIENT_VERSION || 'unknown',
+    package: process.env.VIVO_ASR_PACKAGE || 'unknown',
+    sdk_version: process.env.VIVO_ASR_SDK_VERSION || 'unknown',
+    user_id: userId,
+    android_version: process.env.VIVO_ASR_ANDROID_VERSION || 'unknown',
+    system_time: systemTime,
+    net_type: process.env.VIVO_ASR_NET_TYPE || '1',
+    engineid: process.env.VIVO_ASR_ENGINE_ID || 'shortasrinput',
+    requestId,
+  }
+
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, String(value)))
+  return url.toString()
+}
+
+const stripWavHeader = (audioBuffer) => {
+  if (audioBuffer.length < 44 || audioBuffer.toString('ascii', 0, 4) !== 'RIFF') return audioBuffer
+
+  let offset = 12
+  while (offset + 8 <= audioBuffer.length) {
+    const chunkId = audioBuffer.toString('ascii', offset, offset + 4)
+    const chunkSize = audioBuffer.readUInt32LE(offset + 4)
+    const dataStart = offset + 8
+    if (chunkId === 'data') return audioBuffer.subarray(dataStart, dataStart + chunkSize)
+    offset = dataStart + chunkSize + (chunkSize % 2)
+  }
+
+  return audioBuffer.subarray(44)
+}
+
+const callVivoAsr = ({ audioBuffer, audioType = 'pcm', userId, timeoutMs = 30000 }) => {
+  const appKey = getVivoAppKey()
+  if (!appKey) {
+    const error = new Error('服务器未配置 VIVO_APP_KEY，无法使用语音识别')
+    error.statusCode = 503
+    return Promise.reject(error)
+  }
+
+  return new Promise((resolve, reject) => {
+    const requestId = crypto.randomUUID().replace(/-/g, '')
+    const asrUserId = createAsrUserId(userId)
+    const ws = new WebSocket(buildVivoAsrUrl({ requestId, userId: asrUserId }), {
+      headers: {
+        Authorization: `Bearer ${appKey}`,
+      },
+    })
+    const resultParts = []
+    let settled = false
+
+    const cleanup = () => {
+      clearTimeout(timer)
+      ws.removeAllListeners()
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        try {
+          ws.close()
+        } catch (_error) {
+          // Ignore close failures after the request has already settled.
+        }
+      }
+    }
+
+    const finish = (callback) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      callback()
+    }
+
+    const timer = setTimeout(() => {
+      finish(() => reject(new Error('语音识别超时，请稍后再试')))
+    }, timeoutMs)
+
+    ws.on('open', () => {
+      const startPayload = {
+        type: 'started',
+        request_id: requestId,
+        asr_info: {
+          end_vad_time: Number(process.env.VIVO_ASR_END_VAD_TIME_MS || 1200),
+          audio_type: audioType,
+          chinese2digital: 1,
+          punctuation: 1,
+        },
+        business_info: 'agricloud-app',
+      }
+
+      ws.send(JSON.stringify(startPayload))
+
+      const frameSize = Number(process.env.VIVO_ASR_FRAME_BYTES || 1280)
+      for (let offset = 0; offset < audioBuffer.length; offset += frameSize) {
+        ws.send(audioBuffer.subarray(offset, Math.min(offset + frameSize, audioBuffer.length)))
+      }
+      ws.send(Buffer.from('--end--'))
+    })
+
+    ws.on('message', (message) => {
+      let data
+      try {
+        data = JSON.parse(message.toString())
+      } catch (_error) {
+        return
+      }
+
+      if (data?.action === 'error' || Number(data?.code || 0) !== 0) {
+        finish(() => reject(new Error(data?.desc || '语音识别服务返回错误')))
+        return
+      }
+
+      const text = String(data?.data?.text || '').trim()
+      if (data?.action === 'result' && text) {
+        if (Number(data.data.reformation) === 1) {
+          resultParts.splice(0, resultParts.length, text)
+        } else {
+          resultParts.push(text)
+        }
+      }
+
+      if (data?.is_finish || data?.data?.is_last) {
+        finish(() => resolve(resultParts.join('').trim()))
+      }
+    })
+
+    ws.on('error', (error) => {
+      finish(() => reject(error))
+    })
+
+    ws.on('close', () => {
+      if (settled) return
+      const text = resultParts.join('').trim()
+      finish(() => {
+        if (text) resolve(text)
+        else reject(new Error('没有识别到有效语音，请重新尝试'))
+      })
+    })
+  })
 }
 
 const callAiDiagnosis = async (payload) => {
@@ -2368,6 +2516,58 @@ app.post('/api/assistant/chat', optionalAuth, (req, res) => {
   } catch (error) {
     console.error('[assistant] chat failed:', error)
     res.status(500).json(fail('助手暂时没有响应，请稍后再试'))
+  }
+})
+
+app.post('/api/speech/asr', optionalAuth, async (req, res) => {
+  const audioBase64 = String(req.body?.audioBase64 || '')
+    .replace(/^data:audio\/[^;]+;base64,/, '')
+    .trim()
+  const requestedFormat = String(req.body?.format || 'pcm').toLowerCase()
+
+  if (!audioBase64) {
+    res.status(400).json(fail('请上传语音内容'))
+    return
+  }
+
+  let audioBuffer
+  try {
+    audioBuffer = Buffer.from(audioBase64, 'base64')
+  } catch (_error) {
+    res.status(400).json(fail('语音内容格式不正确'))
+    return
+  }
+
+  if (!audioBuffer.length) {
+    res.status(400).json(fail('语音内容为空'))
+    return
+  }
+
+  if (audioBuffer.length > Number(process.env.VIVO_ASR_MAX_AUDIO_BYTES || 4 * 1024 * 1024)) {
+    res.status(413).json(fail('语音太长，请控制在 60 秒内'))
+    return
+  }
+
+  const isWav = requestedFormat === 'wav' || audioBuffer.toString('ascii', 0, 4) === 'RIFF'
+  const pcmBuffer = isWav ? stripWavHeader(audioBuffer) : audioBuffer
+
+  try {
+    const text = await callVivoAsr({
+      audioBuffer: pcmBuffer,
+      audioType: 'pcm',
+      userId: req.user?.id || req.ip,
+      timeoutMs: Number(process.env.VIVO_ASR_TIMEOUT_MS || 30000),
+    })
+
+    if (!text) {
+      res.status(422).json(fail('没有识别到有效语音'))
+      return
+    }
+
+    res.json(ok({ text }))
+  } catch (error) {
+    console.error('[speech] vivo asr failed:', error)
+    res.status(error.statusCode || 502).json(fail(error.message || '语音识别失败，请稍后再试'))
   }
 })
 

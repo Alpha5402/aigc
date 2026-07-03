@@ -1,8 +1,10 @@
+import { http } from './request'
+
 type SpeechRecognitionCtor = new () => any
 type SpeechErrorMap = Record<string, string>
 
 const RECOGNIZE_TIMEOUT = 12000
-const APP_SPEECH_ERROR = 'App 语音识别服务未配置，请先在 DCloud manifest 中配置百度或讯飞语音 SDK，或使用文字输入'
+const APP_RECORD_DURATION = 8000
 
 const speechErrorMessages: SpeechErrorMap = {
   'no-speech': '没有听到有效语音，请靠近麦克风后再试',
@@ -137,18 +139,108 @@ const stringifySpeechError = (error: any) => {
   }
 }
 
+const readAppFileAsBase64 = (filePath: string): Promise<string> => {
+  return new Promise<string>((resolve, reject) => {
+    const plusObj = (globalThis as any).plus
+    if (!plusObj?.io) {
+      reject(new Error('当前 App 运行环境暂不支持读取录音文件'))
+      return
+    }
+
+    plusObj.io.resolveLocalFileSystemURL(
+      filePath,
+      (entry: any) => {
+        entry.file(
+          (file: any) => {
+            const reader = new plusObj.io.FileReader()
+            reader.onloadend = (event: any) => {
+              const result = String(event?.target?.result || reader.result || '')
+              const base64 = result.includes(',') ? result.split(',').pop() : result
+              if (base64) {
+                resolve(base64)
+                return
+              }
+              reject(new Error('录音文件读取失败，请重新尝试'))
+            }
+            reader.onerror = () => reject(new Error('录音文件读取失败，请重新尝试'))
+            reader.readAsDataURL(file)
+          },
+          () => reject(new Error('录音文件打开失败，请重新尝试')),
+        )
+      },
+      () => reject(new Error('录音文件不存在，请重新尝试')),
+    )
+  })
+}
+
+const recordAppVoice = (): Promise<{ audioBase64: string; format: string }> => {
+  return new Promise((resolve, reject) => {
+    if (typeof uni.getRecorderManager !== 'function') {
+      reject(new Error('当前 App 基座不支持录音，请使用文字输入'))
+      return
+    }
+
+    const recorder = uni.getRecorderManager()
+    let settled = false
+    const cleanup = () => {
+      ;(recorder as any).offStop?.(handleStop)
+      ;(recorder as any).offError?.(handleError)
+    }
+    const finish = (callback: () => void) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      callback()
+    }
+    const handleStop = async (result: any) => {
+      try {
+        const tempFilePath = String(result?.tempFilePath || '')
+        if (!tempFilePath) {
+          finish(() => reject(new Error('没有生成录音文件，请重新尝试')))
+          return
+        }
+        const audioBase64 = await readAppFileAsBase64(tempFilePath)
+        finish(() => resolve({ audioBase64, format: 'pcm' }))
+      } catch (error: any) {
+        finish(() => reject(error))
+      }
+    }
+    const handleError = (error: any) => {
+      console.warn('[voice] App recorder error:', error)
+      finish(() => reject(new Error(getSpeechErrorMessage(error?.errMsg || error?.message, '录音失败，请检查麦克风权限'))))
+    }
+
+    recorder.onStop(handleStop)
+    recorder.onError(handleError)
+
+    try {
+      recorder.start({
+        duration: APP_RECORD_DURATION,
+        sampleRate: 16000,
+        numberOfChannels: 1,
+        encodeBitRate: 256000,
+        format: 'PCM' as any,
+      })
+      uni.showToast({ title: '请说话，8 秒内自动识别', icon: 'none' })
+    } catch (error: any) {
+      finish(() => reject(new Error(getSpeechErrorMessage(error?.errMsg || error?.message, '录音启动失败，请检查麦克风权限'))))
+    }
+  })
+}
+
 const startPlusSpeechRecognize = async (): Promise<string> => {
-  const plusObj = await waitForPlusReady()
-  const speech = plusObj?.speech
-
-  if (!speech || typeof speech.startRecognize !== 'function') {
-    throw new Error('当前 App 基座未启用语音输入模块，请检查 manifest.json 和自定义基座')
+  await waitForPlusReady()
+  const recording = await recordAppVoice()
+  const result = await http.post<{ text: string }, { audioBase64: string; format: string }>(
+    '/speech/asr',
+    recording,
+    { 'Content-Type': 'application/json' },
+  )
+  const text = String(result?.text || '').trim()
+  if (!text) {
+    throw new Error('没有识别到有效语音，请重新尝试或使用文字输入')
   }
-
-  // The native Speech module only works when a concrete engine SDK is packaged
-  // and configured in manifest.json. Calling a missing engine throws
-  // "not found engine=baidu" on Android, so fail early with a user-facing hint.
-  throw new Error(APP_SPEECH_ERROR)
+  return text
 }
 
 export const isVoiceRecognizeSupported = () => {
@@ -157,7 +249,7 @@ export const isVoiceRecognizeSupported = () => {
   // #endif
 
   // #ifdef APP-PLUS
-  return false
+  return typeof uni.getRecorderManager === 'function'
   // #endif
 
   return false

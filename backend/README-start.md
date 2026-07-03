@@ -40,13 +40,16 @@ DEMO_PASSWORD=123456
 AI_PROVIDER=vivo-xuanji
 VIVO_APP_ID=你的vivo应用ID
 VIVO_APP_KEY=你的vivo应用Key
+VIVO_ASR_ENGINE_ID=shortasrinput
+VIVO_ASR_WS_URL=wss://api-ai.vivo.com.cn/asr/v2
 ```
 
 说明：
 
 - `PORT=3000` 表示后端启动在 `http://127.0.0.1:3000`。
 - `DEMO_PHONE` / `DEMO_PASSWORD` 是演示账号。
-- AI 咨询功能需要配置 `VIVO_APP_ID` 和 `VIVO_APP_KEY`。
+- AI 咨询和 App 语音识别功能需要配置 `VIVO_APP_ID` 和 `VIVO_APP_KEY`；语音识别默认使用 vivo 实时短语音 `shortasrinput` 能力。
+- `VIVO_ASR_ENGINE_ID` / `VIVO_ASR_WS_URL` 通常不用改，只有 vivo 控制台分配了不同能力 ID 或接口地址时才需要覆盖。
 - OSS、天气、行情预测等能力如果不配置，相关功能可能降级或不可用，但基础登录、页面数据和本地演示可以先跑起来。
 
 ## 3. 启动后端

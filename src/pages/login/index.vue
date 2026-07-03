@@ -449,6 +449,13 @@ const showAgreement = (type: string) => {
   color: var(--acm-white);
   font-size: 26rpx;
   flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 0;
+  line-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .code-btn-disabled {
