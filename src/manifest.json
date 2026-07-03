@@ -2,8 +2,8 @@
     "name" : "AgriCloudManager",
     "appid" : "__UNI__A0763C1",
     "description" : "",
-    "versionName" : "1.6.5",
-    "versionCode" : 165,
+    "versionName" : "1.6.6",
+    "versionCode" : 166,
     "transformPx" : false,
     /* 5+App特有相关 */
     "app-plus" : {
@@ -24,6 +24,14 @@
         },
         /* 应用发布信息 */
         "distribute" : {
+            "icons" : {
+                "android" : {
+                    "hdpi" : "unpackage/res/icons/72x72.png",
+                    "xhdpi" : "unpackage/res/icons/96x96.png",
+                    "xxhdpi" : "unpackage/res/icons/144x144.png",
+                    "xxxhdpi" : "unpackage/res/icons/192x192.png"
+                }
+            },
             /* android打包配置 */
             "android" : {
                 "permissions" : [
