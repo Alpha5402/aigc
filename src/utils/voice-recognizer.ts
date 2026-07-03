@@ -1,4 +1,4 @@
-import { http } from './request'
+import { recognizeSpeech } from '../api/speech'
 
 type SpeechRecognitionCtor = new () => any
 type SpeechErrorMap = Record<string, string>
@@ -231,11 +231,7 @@ const recordAppVoice = (): Promise<{ audioBase64: string; format: string }> => {
 const startPlusSpeechRecognize = async (): Promise<string> => {
   await waitForPlusReady()
   const recording = await recordAppVoice()
-  const result = await http.post<{ text: string }, { audioBase64: string; format: string }>(
-    '/speech/asr',
-    recording,
-    { 'Content-Type': 'application/json' },
-  )
+  const result = await recognizeSpeech(recording)
   const text = String(result?.text || '').trim()
   if (!text) {
     throw new Error('没有识别到有效语音，请重新尝试或使用文字输入')
