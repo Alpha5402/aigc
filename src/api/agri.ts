@@ -1,6 +1,12 @@
 import { http } from '../utils/request'
 
 const isMockMode = () => false; // 强制走真实接口
+const API_BASE_URL = 'https://agricloud-api.onrender.com/api'
+
+const apiPath = (path: string) => {
+  if (/^https?:\/\//i.test(path)) return path
+  return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
+}
 
 export interface CropInfo {
   id: number
@@ -867,7 +873,7 @@ export const getMyFieldData = async (location?: LocationPayload) => {
     crops: CropInfo[]
     tasks: TaskInfo[]
     weather: WeatherInfo
-  }>('/field/overview', location)
+  }>(apiPath('/field/overview'), location)
 }
 
 export const getMarketData = async () => {
@@ -876,7 +882,7 @@ export const getMarketData = async () => {
     nearbyMarkets: NearbyMarketItem[]
     priceAlerts: PriceAlertItem[]
     recommendations: RecommendationItem[]
-  }>('/market/overview')
+  }>(apiPath('/market/overview'))
 
   const followed = getFollowedCropNames()
   const backendCropNames = res.crops.map((c) => normalizeCropName(c.name))
@@ -945,7 +951,7 @@ export interface MarketForecastData {
 }
 
 export const getMarketForecast = async (spuId: string, horizon: 7 | 30 = 7) => {
-  return http.get<MarketForecastData>(`/market/forecast/${encodeURIComponent(spuId)}`, { horizon })
+  return http.get<MarketForecastData>(apiPath(`/market/forecast/${encodeURIComponent(spuId)}`), { horizon })
 }
 
 export const generateMarketRagReport = async (payload: {
@@ -964,7 +970,7 @@ export const generateMarketRagReport = async (payload: {
   }
 
   return http.request<MarketRagReportResult, typeof payload>({
-    url: '/market/report/rag',
+    url: apiPath('/market/report/rag'),
     method: 'POST',
     data: payload,
     timeout: 60000,
@@ -991,7 +997,7 @@ export const getBuyerData = async () => {
     buyers: BuyerItem[]
     myProducts: MyProductItem[]
     recommendation: BuyerRecommendationInfo
-  }>('/buyer/overview')
+  }>(apiPath('/buyer/overview'))
 }
 
 export const getBuyerRecommendations = async (payload?: {
@@ -1009,7 +1015,7 @@ export const getBuyerRecommendations = async (payload?: {
     buyers: BuyerItem[]
     myProducts: MyProductItem[]
     recommendation: BuyerRecommendationInfo
-  }>('/buyer/recommend', payload || {})
+  }>(apiPath('/buyer/recommend'), payload || {})
 }
 
 export const getCurrentWeather = async (location?: LocationPayload) => {
@@ -1017,7 +1023,7 @@ export const getCurrentWeather = async (location?: LocationPayload) => {
     return useMock(() => clone(mockWeather), 180)
   }
 
-  return http.get<WeatherInfo>('/weather/current', location)
+  return http.get<WeatherInfo>(apiPath('/weather/current'), location)
 }
 
 export const getBuyerNavigation = async (merchantId: number, origin?: {
@@ -1030,7 +1036,7 @@ export const getBuyerNavigation = async (merchantId: number, origin?: {
     return buildMockNavigation(buyer)
   }
 
-  return http.get<BuyerNavigationInfo>('/map/navigation', {
+  return http.get<BuyerNavigationInfo>(apiPath('/map/navigation'), {
     merchantId,
     originLat: origin?.latitude,
     originLng: origin?.longitude,
@@ -1043,7 +1049,7 @@ export const logBuyerInterest = async (payload: BuyerInterestPayload) => {
     return useMock(() => ({ success: true }), 180)
   }
 
-  return http.post<{ success: boolean }, BuyerInterestPayload>('/buyer/interest', payload)
+  return http.post<{ success: boolean }, BuyerInterestPayload>(apiPath('/buyer/interest'), payload)
 }
 
 export const getBuyerInterests = async () => {
@@ -1053,7 +1059,7 @@ export const getBuyerInterests = async () => {
 
   return http.get<{
     list: BuyerInterestItem[]
-  }>('/buyer/interests')
+  }>(apiPath('/buyer/interests'))
 }
 
 const buildDefaultNotifications = (): NotificationItem[] => [
@@ -1122,7 +1128,7 @@ export const getNotifications = async (query?: NotificationQuery) => {
     unread: number
     page: number
     pageSize: number
-  }>('/notifications', query)
+  }>(apiPath('/notifications'), query)
 }
 
 export const markNotificationRead = async (id: number) => {
@@ -1136,7 +1142,7 @@ export const markNotificationRead = async (id: number) => {
     }, 120)
   }
 
-  return http.post<{ success: boolean }, { id: number }>('/notifications/read', { id })
+  return http.post<{ success: boolean }, { id: number }>(apiPath('/notifications/read'), { id })
 }
 
 export const markAllNotificationsRead = async (type = 'all') => {
@@ -1151,7 +1157,7 @@ export const markAllNotificationsRead = async (type = 'all') => {
     }, 120)
   }
 
-  return http.post<{ success: boolean; changed: number }, { type?: string }>('/notifications/read-all', { type })
+  return http.post<{ success: boolean; changed: number }, { type?: string }>(apiPath('/notifications/read-all'), { type })
 }
 
 export const getAdsData = async () => {
@@ -1167,7 +1173,7 @@ export const getAdsData = async () => {
     templates: AdTemplate[]
     farmProfile: FarmProfile
     historyList: AdHistoryItem[]
-  }>('/ads/overview')
+  }>(apiPath('/ads/overview'))
 }
 
 export const generateAdCopy = async (template: AdTemplate) => {
@@ -1182,7 +1188,7 @@ export const generateAdCopy = async (template: AdTemplate) => {
     )
   }
 
-  return http.post<AdTemplate, { templateId: number }>('/ads/generate', { templateId: template.id })
+  return http.post<AdTemplate, { templateId: number }>(apiPath('/ads/generate'), { templateId: template.id })
 }
 
 export const submitAddCrop = async (payload: AddCropPayload) => {
@@ -1238,7 +1244,7 @@ export const submitAddCrop = async (payload: AddCropPayload) => {
     )
   }
 
-  return http.post('/crop/create', payload)
+  return http.post(apiPath('/crop/create'), payload)
 }
 
 export const askAiDiagnosis = async (payload: AIDiagnosisPayload) => {
@@ -1266,7 +1272,7 @@ export const askAiDiagnosis = async (payload: AIDiagnosisPayload) => {
   }
 
   return http.request<AIDiagnosisResult, AIDiagnosisPayload>({
-    url: '/ai/diagnose',
+    url: apiPath('/ai/diagnose'),
     method: 'POST',
     data: payload,
     timeout: 90000,
@@ -1282,7 +1288,7 @@ export const getAiDiagnosisHistory = async () => {
 
   return http.get<{
     historyList: AIDiagnosisHistoryItem[]
-  }>('/ai/history')
+  }>(apiPath('/ai/history'))
 }
 
 export const addMarketFollowCrop = (name: string) => {
@@ -1326,7 +1332,7 @@ export const removeMyFieldCrop = async (id: number, name: string) => {
 
   // 调用后端接口删除作物（优先通过作物名称删除，因为前端 id 经过偏移映射）
   try {
-    await http.delete('/crop', { name: toDisplayCropName(normalized || name) })
+    await http.delete(apiPath('/crop'), { name: toDisplayCropName(normalized || name) })
   } catch (_error) {
     // 后端删除失败时降级为仅本地删除
     console.warn('[removeMyFieldCrop] backend delete failed, falling back to local-only')
@@ -1387,6 +1393,6 @@ const normalizeMarketingMaterialPackage = (response: unknown): MarketingMaterial
 }
 
 export const generateMarketingMaterials = async (payload: GenerateMarketingPayload) => {
-  const response = await http.post<unknown, GenerateMarketingPayload>('/ads/generate', payload)
+  const response = await http.post<unknown, GenerateMarketingPayload>(apiPath('/ads/generate'), payload)
   return normalizeMarketingMaterialPackage(response)
 }

@@ -3,6 +3,13 @@ import { defineStore } from 'pinia'
 import { http, isMockMode } from '../utils/request'
 import { redirectToLogin } from '../utils/auth-guard'
 
+const API_BASE_URL = 'https://agricloud-api.onrender.com/api'
+
+const apiPath = (path: string) => {
+  if (/^https?:\/\//i.test(path)) return path
+  return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 export interface UserInfo {
   id?: string | number
   name?: string
@@ -138,7 +145,7 @@ export const useAuthStore = defineStore('auth', () => {
       return { token: mockToken, user: mockUser }
     }
 
-    const res = await http.post<{ token: string; refreshToken: string; expireAt: number; user: UserInfo }, LoginPayload>('/auth/login', payload)
+    const res = await http.post<{ token: string; refreshToken: string; expireAt: number; user: UserInfo }, LoginPayload>(apiPath('/auth/login'), payload)
     setToken(res.token, res.expireAt)
     setRefreshToken(res.refreshToken)
     setUserInfo(res.user)
@@ -164,7 +171,7 @@ export const useAuthStore = defineStore('auth', () => {
       return { token: mockToken, user: mockUser }
     }
 
-    const res = await http.post<{ token: string; refreshToken: string; expireAt: number; user: UserInfo }, RegisterPayload>('/auth/register', payload)
+    const res = await http.post<{ token: string; refreshToken: string; expireAt: number; user: UserInfo }, RegisterPayload>(apiPath('/auth/register'), payload)
     setToken(res.token, res.expireAt)
     setRefreshToken(res.refreshToken)
     setUserInfo(res.user)
@@ -177,7 +184,7 @@ export const useAuthStore = defineStore('auth', () => {
       uni.showToast({ title: '模拟验证码：123456', icon: 'none', duration: 3000 })
       return { success: true }
     }
-    return http.post<{ success: boolean }, { phone: string }>('/auth/sms/send', { phone })
+    return http.post<{ success: boolean }, { phone: string }>(apiPath('/auth/sms/send'), { phone })
   }
 
   const refreshAccessToken = async () => {
@@ -193,7 +200,7 @@ export const useAuthStore = defineStore('auth', () => {
       return { token: newToken }
     }
 
-    const res = await http.post<{ token: string; expireAt: number }>('/auth/refresh', { refreshToken: refreshToken.value })
+    const res = await http.post<{ token: string; expireAt: number }>(apiPath('/auth/refresh'), { refreshToken: refreshToken.value })
     setToken(res.token, res.expireAt)
     return res
   }
@@ -202,7 +209,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (isMockMode()) {
       return userInfo.value
     }
-    const user = await http.get<UserInfo>('/auth/profile')
+    const user = await http.get<UserInfo>(apiPath('/auth/profile'))
     setUserInfo(user)
     return user
   }
@@ -219,7 +226,7 @@ export const useAuthStore = defineStore('auth', () => {
       return nextUser
     }
 
-    const user = await http.put<UserInfo, UpdateUserProfilePayload>('/auth/profile', payload)
+    const user = await http.put<UserInfo, UpdateUserProfilePayload>(apiPath('/auth/profile'), payload)
     setUserInfo(user)
     return user
   }
@@ -240,7 +247,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
 
-    const result = await http.post<UploadAvatarResult, UploadAvatarPayload>('/auth/avatar', payload)
+    const result = await http.post<UploadAvatarResult, UploadAvatarPayload>(apiPath('/auth/avatar'), payload)
     setUserInfo(result.user)
     return result
   }
@@ -248,7 +255,7 @@ export const useAuthStore = defineStore('auth', () => {
   const logout = async () => {
     if (!isMockMode() && token.value) {
       try {
-        await http.post('/auth/logout', { token: token.value })
+        await http.post(apiPath('/auth/logout'), { token: token.value })
       } catch (_error) {
         // ignore logout error
       }

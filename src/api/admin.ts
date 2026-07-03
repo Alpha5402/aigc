@@ -1,6 +1,13 @@
 import { http } from '../utils/request'
 import type { MarketCropItem, NotificationItem, NotificationQuery } from './agri'
 
+const API_BASE_URL = 'https://agricloud-api.onrender.com/api'
+
+const apiPath = (path: string) => {
+  if (/^https?:\/\//i.test(path)) return path
+  return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 export interface AdminDashboardOverview {
   userCount: number
   cropCount: number
@@ -168,33 +175,33 @@ export interface AdminMarketItem extends MarketCropItem {
   updatedAt?: string
 }
 
-export const getAdminDashboard = () => http.get<AdminDashboardData>('/admin/dashboard')
-export const getAdminUsers = () => http.get<{ list: AdminUserItem[] }>('/admin/users')
+export const getAdminDashboard = () => http.get<AdminDashboardData>(apiPath('/admin/dashboard'))
+export const getAdminUsers = () => http.get<{ list: AdminUserItem[] }>(apiPath('/admin/users'))
 export const updateAdminUserRole = (payload: UpdateAdminUserRolePayload) =>
-  http.put<{ success: boolean; userId: number; role: string }, UpdateAdminUserRolePayload>('/admin/users/role', payload)
-export const getAdminSpus = () => http.get<{ list: AdminSpuItem[] }>('/admin/spus')
+  http.put<{ success: boolean; userId: number; role: string }, UpdateAdminUserRolePayload>(apiPath('/admin/users/role'), payload)
+export const getAdminSpus = () => http.get<{ list: AdminSpuItem[] }>(apiPath('/admin/spus'))
 export const getAdminMerchants = (params?: { status?: string }) =>
-  http.get<{ list: AdminMerchantItem[] }>('/admin/merchants', params)
+  http.get<{ list: AdminMerchantItem[] }>(apiPath('/admin/merchants'), params)
 export const saveAdminMerchant = (merchant: AdminMerchantItem) =>
   merchant.id
-    ? http.put<{ success: boolean }, AdminMerchantItem>('/admin/merchants', merchant)
-    : http.post<{ id: number }, AdminMerchantItem>('/admin/merchants', merchant)
+    ? http.put<{ success: boolean }, AdminMerchantItem>(apiPath('/admin/merchants'), merchant)
+    : http.post<{ id: number }, AdminMerchantItem>(apiPath('/admin/merchants'), merchant)
 export const deleteAdminMerchant = (id: number) =>
-  http.delete<{ success: boolean }, { id: number }>('/admin/merchants', { id })
+  http.delete<{ success: boolean }, { id: number }>(apiPath('/admin/merchants'), { id })
 export const auditAdminMerchant = (payload: {
   id: number
   status: 'pending' | 'active' | 'rejected' | 'inactive' | string
   reviewNote?: string
-}) => http.post<{ success: boolean; id: number; status: string }, typeof payload>('/admin/merchants/audit', payload)
-export const getAdminMarketItems = () => http.get<{ list: AdminMarketItem[] }>('/admin/market-items')
+}) => http.post<{ success: boolean; id: number; status: string }, typeof payload>(apiPath('/admin/merchants/audit'), payload)
+export const getAdminMarketItems = () => http.get<{ list: AdminMarketItem[] }>(apiPath('/admin/market-items'))
 export const saveAdminMarketItem = (item: AdminMarketItem) =>
   item.id
-    ? http.put<{ success: boolean }, AdminMarketItem>('/admin/market-items', item)
-    : http.post<{ id: number }, AdminMarketItem>('/admin/market-items', item)
+    ? http.put<{ success: boolean }, AdminMarketItem>(apiPath('/admin/market-items'), item)
+    : http.post<{ id: number }, AdminMarketItem>(apiPath('/admin/market-items'), item)
 export const deleteAdminMarketItem = (id: number) =>
-  http.delete<{ success: boolean }, { id: number }>('/admin/market-items', { id })
+  http.delete<{ success: boolean }, { id: number }>(apiPath('/admin/market-items'), { id })
 export const getAdminNotifications = (query?: NotificationQuery) =>
-  http.get<{ list: NotificationItem[] }>('/admin/notifications', query)
+  http.get<{ list: NotificationItem[] }>(apiPath('/admin/notifications'), query)
 export const createAdminNotification = (payload: {
   userId?: number | null
   type: string
@@ -202,19 +209,19 @@ export const createAdminNotification = (payload: {
   content: string
   source?: string
   sourceId?: string
-}) => http.post<{ id: number }, typeof payload>('/admin/notifications', payload)
+}) => http.post<{ id: number }, typeof payload>(apiPath('/admin/notifications'), payload)
 export const markAllAdminNotificationsRead = (type = 'all') =>
-  http.post<{ success: boolean; changed: number }, { type?: string }>('/admin/notifications/read-all', { type })
+  http.post<{ success: boolean; changed: number }, { type?: string }>(apiPath('/admin/notifications/read-all'), { type })
 export const getAdminForecastRuns = (limit = 20) =>
-  http.get<{ list: AdminForecastRunItem[] }>('/admin/forecast/runs', { limit })
+  http.get<{ list: AdminForecastRunItem[] }>(apiPath('/admin/forecast/runs'), { limit })
 export const runAdminForecast = (payload: { spuId: string; horizonDays: number }) =>
   http.post<{
     result: { forecastRunId?: number; generatedAt?: string; status?: string }
     latest: AdminForecastRunItem | null
-  }, typeof payload>('/admin/forecast/run', payload)
+  }, typeof payload>(apiPath('/admin/forecast/run'), payload)
 export const getAdminCollectionLogs = (limit = 20) =>
-  http.get<{ list: AdminCollectionLogItem[] }>('/admin/collection/logs', { limit })
-export const getAdminAuditLogs = (limit = 20) => http.get<{ list: AdminAuditLogItem[] }>('/admin/audit-logs', { limit })
+  http.get<{ list: AdminCollectionLogItem[] }>(apiPath('/admin/collection/logs'), { limit })
+export const getAdminAuditLogs = (limit = 20) => http.get<{ list: AdminAuditLogItem[] }>(apiPath('/admin/audit-logs'), { limit })
 export const syncAdminRag = () =>
   http.post<{
     totalDocs: number
@@ -222,7 +229,7 @@ export const syncAdminRag = () =>
     sources: Array<{ name: string; links: number; saved: number; failed: number; skipped: number; errors: string[] }>
     startedAt: string
     finishedAt: string
-  }>('/admin/rag/crawl')
+  }>(apiPath('/admin/rag/crawl'))
 export const crawlAdminRag = syncAdminRag
-export const resetAdminDemo = () => http.post<{ success: boolean }>('/admin/demo/reset')
+export const resetAdminDemo = () => http.post<{ success: boolean }>(apiPath('/admin/demo/reset'))
 export const resetAdminDemoData = resetAdminDemo

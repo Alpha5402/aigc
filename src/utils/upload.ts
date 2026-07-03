@@ -28,6 +28,12 @@ const DEFAULT_MAX_SIZE = 10 * 1024 * 1024
 const DEFAULT_QUALITY = 80
 const DEFAULT_TIMEOUT = 60000
 const APP_PROD_UPLOAD_SIGN_URL = 'https://agricloud-api.onrender.com/api/oss/sign'
+const APP_PROD_API_BASE_URL = 'https://agricloud-api.onrender.com/api'
+
+const apiPath = (path: string) => {
+  if (/^https?:\/\//i.test(path)) return path
+  return `${APP_PROD_API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
+}
 
 const isAppRuntime = () => {
   try {
@@ -88,7 +94,7 @@ const recordUpload = async (payload: {
   size: number
 }) => {
   try {
-    await http.post('/oss/record', payload)
+    await http.post(apiPath('/oss/record'), payload)
   } catch (_error) {
     // 不阻断主流程
   }
