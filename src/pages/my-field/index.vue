@@ -82,10 +82,16 @@
           v-else-if="isError"
           icon-name="cloud-off"
           title="田块数据加载失败"
-          description="请检查网络后重试，已保留添加作物入口。"
+          :description="errorDetail || '请检查网络后重试，已保留添加作物入口。'"
           action-text="重新加载"
           @action="loadData"
-        />
+        >
+          <view v-if="errorDetail" class="error-debug">
+            <text class="error-debug__label">完整错误</text>
+            <text class="error-debug__message">{{ errorDetail }}</text>
+            <AppButton text="复制错误" size="sm" variant="secondary" @click="copyErrorDetail" />
+          </view>
+        </EmptyState>
 
         <template v-else>
           <EmptyState
@@ -235,6 +241,7 @@ const marketCrops = ref<MarketCropItem[]>([])
 const selectedCrop = ref<CropInfo | null>(null)
 const isLoading = ref(true)
 const isError = ref(false)
+const errorDetail = ref('')
 const weatherData = ref<WeatherInfo>({
   temp: '--',
   condition: '--',
@@ -363,6 +370,7 @@ const selectedBusinessTips = computed(() => {
 const loadData = async () => {
   isLoading.value = true
   isError.value = false
+  errorDetail.value = ''
   try {
     const location = await getCurrentLocationPayload()
     const [fieldData, marketData] = await Promise.all([getMyFieldData(location || undefined), getMarketData()])
@@ -371,13 +379,28 @@ const loadData = async () => {
     marketCrops.value = marketData.crops || []
     weatherData.value = fieldData.weather
     selectedCrop.value = myCrops.value[0] || null
-  } catch (_error) {
+  } catch (error: any) {
     isError.value = true
-    uni.showToast({ title: '加载失败，请重试', icon: 'none' })
+    errorDetail.value = error?.message || error?.errMsg || '加载失败，请重试'
+    uni.showModal({
+      title: '加载失败',
+      content: errorDetail.value,
+      showCancel: false,
+    })
   } finally {
     isLoading.value = false
     uni.stopPullDownRefresh()
   }
+}
+
+const copyErrorDetail = () => {
+  if (!errorDetail.value) return
+  uni.setClipboardData({
+    data: errorDetail.value,
+    success: () => {
+      uni.showToast({ title: '已复制错误', icon: 'success' })
+    },
+  })
 }
 
 onLoad(() => {
@@ -692,6 +715,35 @@ const confirmRemoveCrop = (crop: CropInfo) => {
 
 .field-content {
   padding: 0 var(--acm-space-page-x);
+}
+
+.error-debug {
+  width: 100%;
+  margin-top: 24rpx;
+  padding: 20rpx;
+  border-radius: 18rpx;
+  border: 1rpx solid rgba(189, 85, 77, 0.28);
+  background: rgba(255, 246, 244, 0.82);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14rpx;
+  text-align: left;
+}
+
+.error-debug__label {
+  color: var(--acm-danger);
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.error-debug__message {
+  color: var(--acm-text-regular);
+  font-size: 23rpx;
+  line-height: 1.45;
+  word-break: break-all;
+  white-space: pre-wrap;
 }
 
 .crop-strip {

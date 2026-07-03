@@ -6,6 +6,7 @@
     </view>
     <text class="empty-state__title">{{ title }}</text>
     <text class="empty-state__description">{{ description }}</text>
+    <slot />
     <AppButton v-if="actionText" class="empty-state__action" :text="actionText" icon="plus" @click="emit('action')" />
   </view>
 </template>

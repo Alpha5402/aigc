@@ -127,15 +127,18 @@ const getBaseUrl = () => {
   }
 
   if (normalizedEnvBase) return normalizedEnvBase
-  return localHost ? 'http://127.0.0.1:3000/api' : ''
+  return localHost ? 'http://127.0.0.1:3000/api' : appFallbackBase
 }
 
 const buildUrl = (url: string) => {
   if (/^https?:\/\//i.test(url)) return url
   const base = getBaseUrl()
   if (!base) {
-    if (isAppRuntime()) {
-      throw createHttpError(-1, `App 请求地址无效：${url}`)
+    const fallbackBase = normalizeBaseUrl(APP_PROD_API_BASE_URL)
+    if (fallbackBase) {
+      const cleanFallbackBase = fallbackBase.endsWith('/') ? fallbackBase.slice(0, -1) : fallbackBase
+      const cleanFallbackPath = url.startsWith('/') ? url : `/${url}`
+      return `${cleanFallbackBase}${cleanFallbackPath}`
     }
     return url
   }
